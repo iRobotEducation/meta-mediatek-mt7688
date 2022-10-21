@@ -1,0 +1,30 @@
+From e544514285de979920d4480c2223cf3538ca8200 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 25 Jun 2020 15:36:37 -0400
+Subject: [PATCH] Don't include MediaTek upgrade code unless the menucommand is
+ enabled.
+
+---
+ board/irobot/irobot-mt7688/Makefile | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/board/irobot/irobot-mt7688/Makefile b/board/irobot/irobot-mt7688/Makefile
+index 2081b2c2..2214f781 100644
+--- a/board/irobot/irobot-mt7688/Makefile
++++ b/board/irobot/irobot-mt7688/Makefile
+@@ -4,7 +4,7 @@ obj-y += board.o
+ obj-$(CONFIG_SPL_BUILD) += spl_load.o
+ 
+ ifeq ($(CONFIG_SPL_BUILD),)
+-obj-y += cmd_mtkautoboot.o
+-obj-y += cmd_mtkboardboot.o
+-obj-y += cmd_mtkupgrade.o
+-endif
+\ No newline at end of file
++obj-$(CONFIG_CMD_BOOTMENU) += cmd_mtkautoboot.o
++obj-$(CONFIG_CMD_BOOTMENU) += cmd_mtkboardboot.o
++obj-$(CONFIG_CMD_BOOTMENU) += cmd_mtkupgrade.o
++endif
+-- 
+2.24.1
+

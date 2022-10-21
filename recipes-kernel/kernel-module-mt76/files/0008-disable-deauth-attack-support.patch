@@ -1,0 +1,19 @@
+From mediatek on Nov 28, 2019:
+
+Remove dauth attack support.  it can cause the wifi driver to crash
+when the AP beacon is lost
+
+diff -urN a/mt_wifi_sta/Makefile b/mt_wifi_sta/Makefile
+--- a/mt_wifi_sta/Makefile	2019-11-30 07:59:38.103386174 -0500
++++ b/mt_wifi_sta/Makefile	2019-11-30 08:02:07.349594895 -0500
+@@ -410,7 +410,9 @@
+ EXTRA_CFLAGS += -DRT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE -DMBSS_SUPPORT
+ EXTRA_CFLAGS += -DDBG  -DWPA_SUPPLICANT_SUPPORT -DRT_CFG80211_SUPPORT  -DAP_SCAN_SUPPORT -DCONFIG_AP_SUPPORT -DAPCLI_SUPPORT  
+ EXTRA_CFLAGS += -DEXT_BUILD_CHANNEL_LIST
+-EXTRA_CFLAGS += -DDEAUTH_ATTACK_SUPPORT
++# remove deauth attack support. not needed and was found to
++# cause wifi driver crashes in beacon loss conditions
++#EXTRA_CFLAGS += -DDEAUTH_ATTACK_SUPPORT
+ EXTRA_CFLAGS += -DCONFIG_RA_NAT_NONE 
+ 
+ ## 11 N ##

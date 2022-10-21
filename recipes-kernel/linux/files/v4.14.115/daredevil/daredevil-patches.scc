@@ -1,0 +1,24 @@
+patch 0010-ubi-Allow-ubiblock-devices-nodes-to-be-created-by-vo.patch
+patch 0011-Add-support-for-ISSI-IS25LP080D-NOR-Flash.patch
+#patch 1001-Remove-mtd-extraneous-files-from-drivers-mtd.patch
+patch 1002-Backport-mtd-and-spi-subsystems-from-4.19-to-4.14.patch
+patch 1003-Reapply-0043-spi-add-mt7621-support.patch
+patch 1004-Teach-UBI-to-mount-block-device-nodes-by-name-instea.patch
+patch 1005-Handle-EPROBE_DEFER-in-spi_drv_probe-as-it-was-handl.patch
+patch 1006-Integrate-gigadevice-and-toshiba-spi-nand-support-fr.patch
+patch 1007-Add-support-for-Macronix-MX25V8035F-NOR-Flash.patch
+patch 1008-Fix-jffs2.patch
+patch 1009-Fix-mtdsplit.patch
+patch 1010-Fix-split-partition-support.patch
+patch 1011-Add-tas2505-codec-driver.patch
+patch 1012-Modify-tas2505-codec-driver.patch
+patch 1013-Revert-MIPS-ralink-copy-the-commandline-from-the-dev.patch
+patch 1014-Force-a-hard-reset-on-Sundial.patch
+patch 1015-serial-8250_mtk-add-flow-control.patch
+patch 1016-Allow-initrd-below-PAGE_OFFSET.patch
+#patch 1017-Add-support-for-locking-unlocking-the-ISSI-and-Macro.patch -- see manufacturing-patches.scc
+patch 1018-Assert-gpio-reset-when-the-tas2505-is-probed.patch
+patch 1019-Fix-corner-case-in-bad-block-table-handling.patch
+patch 1020-mtd-Macronix-MX35LF1GE4AB-ignore-reserved-bits-in-EC.patch
+patch 1021-Add-support-for-TC58CVG0S3HRAIJ-Toshiba-NAND-flash-P.patch
+patch 1022-Include-max98357a-driver.patch

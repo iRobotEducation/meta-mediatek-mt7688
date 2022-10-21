@@ -1,0 +1,52 @@
+#!/bin/sh
+# Copyright (C) 2011 O.S. Systems Software LTDA.
+# Licensed on MIT
+#
+# Create a bunch of functions which can be used by other secure
+# boot init scripts.
+
+common_enabled() {
+# We don't need to run common_run
+	return 1
+}
+
+pet_watchdog() {
+    # pet watchdog to reset hardware watchdog timer
+    if [ -e /dev/watchdog ]; then
+        echo -n 'p' > /dev/watchdog
+    else
+        echo -n "Unable to pet-watchdog, /dev/watchdog not found."
+    fi
+}
+
+mount_persistent() {
+	mkdir /data
+	mount -t ubifs ubi0:persistent /data
+}
+
+OPT_IROBOT=/data/overlay/upper/opt/irobot
+FALLBACK_LOG=$OPT_IROBOT/logs/fallback_log
+
+get_bootcount() {
+	awk -F= '/^BOOTCOUNT/ {print $2}' $OPT_IROBOT/config/provisioning
+}
+
+# Log a "FALLBACK" message to $FALLBACK_LOG, only keep 10 such messages.
+log_fallback() {
+	tag=$1
+	mkdir /tmp
+	sha256sum /dev/ubiblock0_rootfs | cut -c -64 > /tmp/ubi.hash
+	echo $tag: /proc/cmdline=`cat /proc/cmdline` BOOTCOUNT=`get_bootcount` /etc/version=`cat /etc/version` rootfshash=`cat /tmp/ubi.hash` /proc/device-tree/rootfshash=`cat /proc/device-tree/rootfshash` > /tmp/message
+	tail -9 ${FALLBACK_LOG} | cat - /tmp/message > ${FALLBACK_LOG}.new
+	mv ${FALLBACK_LOG} ${FALLBACK_LOG}.old
+	mv ${FALLBACK_LOG}.new ${FALLBACK_LOG}
+	sync
+}
+
+devfromname() {
+	echo /dev/ubi0_`ubinfo /dev/ubi0 -N $1 | awk '/Volume ID/ {print $3}'`
+}
+
+sizefromname() {
+	ubinfo /dev/ubi0 -N $1 | awk '/Data bytes/ {print $3}'
+}

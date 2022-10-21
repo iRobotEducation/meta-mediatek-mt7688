@@ -1,0 +1,54 @@
+/dts-v1/;
+/* This should look very similar to fit-image.its.
+ * We don't include a ramdisk (yet) in the factory image,
+ * and we sign the factory image with factory-csk instead of
+ * DEV-DD-CodeSigningCertC.cer.prikey.
+ */
+/ {
+        description = "Daredevil Factory Linux Image";
+        #address-cells = <1>;
+
+        images {
+                kernel {
+                        description = "Linux kernel";
+                        data = /incbin/("vmlinux.bin.lzma");
+                        type = "kernel";
+                        arch = "mips";
+                        os = "linux";
+                        compression = "lzma";
+                        load = <0x80000000>; /* Must match load-$(CONFIG_SOC_MT7620) */
+                        entry = <0x80000000>;/* in kernel-source/arch/mips/ralink/Platform */
+                        hash {
+                                algo = "sha256";
+                        };
+                };
+		fdt {
+			description = "Device tree";
+			data = /incbin/("device-tree.dtb");
+			type = "flat_dt";
+			arch = "mips";
+			compression = "none";
+			fdt-version = <1>;
+			hash {
+				algo = "sha256";
+			};
+		};
+	};
+
+        configurations {
+                default = "conf";
+                conf {
+			description = "Linux kernel configuration";
+
+			kernel  = "kernel";
+			fdt     = "fdt";
+
+			signature {
+				sign-images = "kernel", "fdt";
+				algo = "sha256,rsa4096";
+				key-name-hint = "factory-csk";
+				padding = "pkcs-1.5";
+			};
+                };
+	};
+};

@@ -1,0 +1,37 @@
+From a132f8a586e0aef9d5a59ce5f632d9274029dde1 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 23 Jun 2020 10:54:00 -0400
+Subject: [PATCH] Display u-boot version and DQS calibration status at boot
+
+---
+ arch/mips/mach-mtmips/mt7628/init.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/mips/mach-mtmips/mt7628/init.c b/arch/mips/mach-mtmips/mt7628/init.c
+index 79e32e48..6889be92 100644
+--- a/arch/mips/mach-mtmips/mt7628/init.c
++++ b/arch/mips/mach-mtmips/mt7628/init.c
+@@ -55,6 +55,9 @@ void mt7628_init(void)
+ 	mt7628_ddr_init();
+ }
+ 
++#define xstr(s) str(s)
++#define str(s) #s
++
+ int print_cpuinfo(void)
+ {
+ 	void __iomem *sysc;
+@@ -87,6 +90,10 @@ int print_cpuinfo(void)
+ 	printf("Clock: CPU: %uMHz, Bus: %uMHz, XTAL: %uMHz\n",
+ 	       clks.cpu / 1000000, clks.bus / 1000000, clks.xtal / 1000000);
+ 
++	printf("iRobot Version: " xstr(IROBOT_UBOOT_VERSION) "\n");
++	u32 ddr_dqs_dly = readl(sysc + 0x364);
++	printf("DDR DQS calibrated: DDR_DQS_DLY=0x%08X\n", ddr_dqs_dly);
++
+ 	return 0;
+ }
+ 
+-- 
+2.24.1
+

@@ -1,0 +1,48 @@
+From b097dcc21ad13cccc612e9ecb5d8015d86a406dc Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 21 May 2020 16:43:42 -0400
+Subject: [PATCH] Assert gpio-reset when the tas2505 is probed.
+
+---
+ sound/soc/codecs/tas2505.c | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/sound/soc/codecs/tas2505.c b/sound/soc/codecs/tas2505.c
+index 50787d9d0a24..08ebb2334dfd 100644
+--- a/sound/soc/codecs/tas2505.c
++++ b/sound/soc/codecs/tas2505.c
+@@ -528,7 +528,8 @@ static int tas2505_i2c_probe(struct i2c_client *i2c,
+ 	struct device_node *np = i2c->dev.of_node;
+ 	const struct regmap_config *regmap_config = &tas2505_i2c_regmap;
+ 	int ret;
+-
++        int gpio_reset;
++        
+ 	tas2505 = devm_kzalloc(&i2c->dev, sizeof(*tas2505), GFP_KERNEL);
+ 	if (tas2505 == NULL)
+ 		return -ENOMEM;
+@@ -541,9 +542,18 @@ static int tas2505_i2c_probe(struct i2c_client *i2c,
+ 		return ret;
+ 	}
+ 
+-	ret = of_get_named_gpio(np, "gpio-reset", 0);
+-	if ((ret > 0) && gpio_is_valid(ret)) {
+-		devm_gpio_request_one(&i2c->dev, ret, GPIOF_OUT_INIT_HIGH, "reset");
++	gpio_reset = of_get_named_gpio(np, "gpio-reset", 0);
++
++	if (gpio_is_valid(gpio_reset)) {
++		gpio_direction_output(gpio_reset, 0);
++		udelay(10);
++		gpio_direction_output(gpio_reset, 1);
++		udelay(10);
++	}
++	dev_info(&i2c->dev, "reset gpio up !!\n");
++		
++	if ((gpio_reset > 0) && gpio_is_valid(gpio_reset)) {
++		devm_gpio_request_one(&i2c->dev, gpio_reset, GPIOF_OUT_INIT_HIGH, "reset");
+ 	}
+ 
+ 	tas2505->dev = &i2c->dev;
+-- 
+2.24.1
+

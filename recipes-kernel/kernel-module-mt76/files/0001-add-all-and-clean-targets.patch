@@ -1,0 +1,15 @@
+diff -urN a/Makefile b/Makefile
+--- a/mt_wifi_sta/Makefile	2019-07-15 14:34:37.723598911 -0400
++++ b/mt_wifi_sta/Makefile	2019-07-15 14:36:25.739639882 -0400
+@@ -423,3 +423,11 @@
+ export MODULE_FLAGS
+ obj-m+=$(SRC_DIR)/tools/plug_in/
+ 
++SRC := $(shell pwd)
++all:
++	$(MAKE) -C $(KERNEL_SRC) M=$(SRC)
++
++modules_install:
++	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules_install
++clean:
++	@rm *.o || true

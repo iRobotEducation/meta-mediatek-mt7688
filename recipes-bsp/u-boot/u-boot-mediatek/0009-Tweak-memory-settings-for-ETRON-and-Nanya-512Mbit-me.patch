@@ -1,0 +1,35 @@
+From 5b7f8bfdab4af795ddd2c0b4f064645148a911f6 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 28 May 2019 10:06:42 -0400
+Subject: [PATCH] Tweak memory settings for ETRON and Nanya 512Mbit memories.
+
+Increase the time between refresh. Set CAS_LATENCY to 5.
+---
+ arch/mips/mach-mtmips/mt7628/ddr.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/mips/mach-mtmips/mt7628/ddr.h b/arch/mips/mach-mtmips/mt7628/ddr.h
+index 9d238539..f6e5d5f3 100644
+--- a/arch/mips/mach-mtmips/mt7628/ddr.h
++++ b/arch/mips/mach-mtmips/mt7628/ddr.h
+@@ -160,7 +160,7 @@
+ 				(0x9 << T_RAS_S) | \
+ 				(0x3 << T_RP_S) | \
+ 				(0x15 << T_RFC_S) | \
+-				(0x2e5 << T_REFI_S))
++				(0x5d9 << T_REFI_S))
+ 
+ #define DDR2_CFG0_128M_200MHZ \
+ 				((0x2 << T_RRD_S) | \
+@@ -263,7 +263,7 @@
+ 				(0x2 << DQS0_GATING_WINDOW_S) | \
+ 				(0x2 << DQS1_GATING_WINDOW_S) | \
+ 				(0x6 << WR_S) | \
+-				(0x4 << CAS_LATENCY_S) | \
++				(0x5 << CAS_LATENCY_S) | \
+ 				(0x3 << BURST_LENGTH_S))
+ 
+ /* DDR2_CFG2 160MHz */
+-- 
+2.24.1
+

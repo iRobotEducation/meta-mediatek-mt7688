@@ -1,0 +1,24 @@
+From 575fcc00a0448852a2bf9fccc5f640f5ae7bef75 Mon Sep 17 00:00:00 2001
+From: Maria Rios-Martinez <mriosmartinez@irobot.com>
+Date: Wed, 16 Jun 2021 18:19:59 -0400
+Subject: [PATCH] Include max98357a driver
+
+---
+ sound/soc/codecs/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/codecs/Kconfig b/sound/soc/codecs/Kconfig
+index 371b15367097..147347e4d867 100644
+--- a/sound/soc/codecs/Kconfig
++++ b/sound/soc/codecs/Kconfig
+@@ -864,6 +864,7 @@ config SND_SOC_STI_SAS
+ config SND_SOC_TAS2505
+ 	tristate "Texas Instruments TAS2505 Mono Audio amplifier"
+ 	depends on I2C
++	select SND_SOC_MAX98357A if GPIOLIB
+ 
+ config SND_SOC_TAS2552
+ 	tristate "Texas Instruments TAS2552 Mono Audio amplifier"
+-- 
+2.27.0
+

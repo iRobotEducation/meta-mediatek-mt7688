@@ -1,0 +1,42 @@
+From 5b1d131fada909833648f27883eb80847bb17314 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 23 Jun 2020 21:04:18 -0400
+Subject: [PATCH] Pulse GPIO22 high at the start and end of DDR calibration.
+
+We do this so that the hardware team can debug can capture waveforms of
+the DDR signals during calibration.
+---
+ arch/mips/mach-mtmips/mt7628/ddr_cal.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/mips/mach-mtmips/mt7628/ddr_cal.c b/arch/mips/mach-mtmips/mt7628/ddr_cal.c
+index 0ff23796..09a8befa 100644
+--- a/arch/mips/mach-mtmips/mt7628/ddr_cal.c
++++ b/arch/mips/mach-mtmips/mt7628/ddr_cal.c
+@@ -119,6 +119,13 @@ void ddr_calibrate(u32 memsize, u32 bw)
+ 	u32 rem, mask;
+ 	int i;
+ 
++	void __iomem *sysc = ioremap_nocache(SYSCTL_BASE, SYSCTL_SIZE);
++	/* Pulse GPIO22 high for >= 100us as a 'scope trigger before running calibration */
++	setbits_32(sysc + 0x600, BIT(22)); // Make GPIO22 an output
++	setbits_32(sysc + 0x620, BIT(22)); // Set it high
++	__udelay(100);
++	clrbits_32(sysc + 0x620, BIT(22)); // Set it low again
++
+ 	/* Disable Self-refresh */
+ 	clrbits_32(memc + MEMCTL_DDR_SELF_REFRESH_REG, SR_AUTO_EN);
+ 
+@@ -210,4 +217,9 @@ void ddr_calibrate(u32 memsize, u32 bw)
+ 
+ 	/* Enable Self-refresh */
+ 	setbits_32(memc + MEMCTL_DDR_SELF_REFRESH_REG, SR_AUTO_EN);
++
++	/* Pulse GPIO22 high for >= 100us after running calibration */
++	setbits_32(sysc + 0x620, BIT(22)); // Set it high
++	__udelay(100);
++	clrbits_32(sysc + 0x620, BIT(22)); // Set it low again
+ }
+-- 
+2.24.1
+

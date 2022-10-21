@@ -1,0 +1,36 @@
+From 011eebd92db588653d39fb968c7468178668e1c2 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 15 May 2019 16:07:14 -0400
+Subject: [PATCH] Report skipped blocks when reading/writing mtd partitions.
+
+---
+ cmd/mtd.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/cmd/mtd.c b/cmd/mtd.c
+index ade91418..ffd7c5b1 100644
+--- a/cmd/mtd.c
++++ b/cmd/mtd.c
+@@ -328,14 +328,17 @@ static int do_mtd_io(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ 
+ 	/* Search for the first good block after the given offset */
+ 	off = start_off;
+-	while (mtd_block_isbad(mtd, off))
++	while (mtd_block_isbad(mtd, off)) {
++                printf("Skipping bad block at 0x%08llx\n", off);
+ 		off += mtd->erasesize;
+-
++        }
++        
+ 	/* Loop over the pages to do the actual read/write */
+ 	while (remaining) {
+ 		/* Skip the block if it is bad */
+ 		if (mtd_is_aligned_with_block_size(mtd, off) &&
+ 		    mtd_block_isbad(mtd, off)) {
++                        printf("Skipping bad block at 0x%08llx\n", off);
+ 			off += mtd->erasesize;
+ 			continue;
+ 		}
+-- 
+2.24.1
+

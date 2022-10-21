@@ -1,0 +1,24 @@
+From 140b523f2cbf49489d6e409c35d7bc93652735cd Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 22 May 2019 09:37:15 -0400
+Subject: [PATCH] Add support for Macronix MX25V8035F NOR Flash.
+
+---
+ drivers/mtd/spi/spi-nor-ids.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/mtd/spi/spi-nor-ids.c b/drivers/mtd/spi/spi-nor-ids.c
+index 34a64dcf..c512709f 100644
+--- a/drivers/mtd/spi/spi-nor-ids.c
++++ b/drivers/mtd/spi/spi-nor-ids.c
+@@ -139,6 +139,7 @@ const struct flash_info spi_nor_ids[] = {
+ 	{ INFO("mx25l1606e",  0xc22015, 0, 64 * 1024,  32, SECT_4K) },
+ 	{ INFO("mx25l3205d",  0xc22016, 0, 64 * 1024,  64, SECT_4K) },
+ 	{ INFO("mx25l6405d",  0xc22017, 0, 64 * 1024, 128, SECT_4K) },
++        { INFO("mx25v8035f",  0xc22314, 0, 64 * 1024,  16, SECT_4K) },
+ 	{ INFO("mx25u2033e",  0xc22532, 0, 64 * 1024,   4, SECT_4K) },
+ 	{ INFO("mx25u1635e",  0xc22535, 0, 64 * 1024,  32, SECT_4K) },
+ 	{ INFO("mx25u6435f",  0xc22537, 0, 64 * 1024, 128, SECT_4K) },
+-- 
+2.24.1
+

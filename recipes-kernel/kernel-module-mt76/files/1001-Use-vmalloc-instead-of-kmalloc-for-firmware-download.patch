@@ -1,0 +1,46 @@
+From 1bcf920c559fedd651aba08985bdcd6f3a7cafc9 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 6 Aug 2020 13:43:43 -0400
+Subject: [PATCH] Use vmalloc instead of kmalloc for firmware download
+
+... also, check to ensure that the memory allocation is successful prior
+to copying the firmware blob to the memory buffer just allocated.
+
+If the kmalloc pool gets too fragmented, then kmalloc() returns NULL,
+the driver is unable to load the firmware, and Wi-Fi doesn't work.  This
+addresses that issue.
+---
+ mt_wifi/embedded/os/linux/rt_linux.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/mt_wifi/embedded/os/linux/rt_linux.c b/mt_wifi/embedded/os/linux/rt_linux.c
+index e421834..b721112 100755
+--- a/mt_wifi/embedded/os/linux/rt_linux.c
++++ b/mt_wifi/embedded/os/linux/rt_linux.c
+@@ -339,7 +339,10 @@ NDIS_STATUS os_free_mem(
+ 	IN PVOID mem)
+ {
+ 	ASSERT(mem);
+-	kfree(mem);
++	if (KSEGX(mem) == KSEG2)
++		vfree(mem);
++	else
++		kfree(mem);
+ 
+ #ifdef VENDOR_FEATURE4_SUPPORT
+ 	OS_NumOfMemFree++;
+@@ -2611,8 +2614,9 @@ void OS_LOAD_CODE_FROM_BIN(unsigned char **image, char *bin_name, void *inf_dev,
+ 		return;
+ 	}
+ 
+-	*image = kmalloc(fw_entry->size, GFP_KERNEL);
+-	memcpy(*image, fw_entry->data, fw_entry->size);
++	*image = vmalloc(fw_entry->size);
++	if (image)
++		memcpy(*image, fw_entry->data, fw_entry->size);
+ 	*code_len = fw_entry->size;
+ 
+ 	release_firmware(fw_entry);
+-- 
+2.24.1
+

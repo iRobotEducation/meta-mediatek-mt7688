@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2018 MediaTek Inc.
+ *
+ * Author: Weijie Gao <weijie.gao@mediatek.com>
+ */
+
+/ {
+	binman {
+		filename = "u-boot-mtmips.bin";
+		pad-byte = <0xff>;
+
+#ifdef CONFIG_SPL
+		u-boot-spl {
+		};
+
+		u-boot-lzma-img {
+		};
+#else
+		u-boot {
+		};
+#endif
+	};
+};

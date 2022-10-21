@@ -1,0 +1,19 @@
+#!/bin/sh
+# Copyright (C) 2011 O.S. Systems Software LTDA.
+# Licensed on MIT
+#
+# Log a fingerprint of the TSK used when booting.
+#
+# At the moment, the fingerprint is simply the sha256 checksum of the
+# TSK MTD block.
+
+fingerprint_enabled() {
+	return 0
+}
+
+# Log the fingerprint to kmsg.  If we choose a different mechanism to pass the sha256sum
+# to the runtime, we will have to change meta-irobot-common/recipes-support/version/files/version.sh
+fingerprint_run() {
+	echo "TSK Fingerprint:`dd if=/dev/mtd4 bs=64K count=1 2>/dev/null | sha256sum | cut -c -64`" > /dev/kmsg
+}
+

@@ -1,0 +1,2 @@
+kconf non-hardware mt7688-openwrt-deviations.cfg
+# patch 0100-prom_fixes-bootargs-bugfix.patch

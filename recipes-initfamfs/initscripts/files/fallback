@@ -1,0 +1,36 @@
+#!/bin/sh
+# Copyright (C) 2011 O.S. Systems Software LTDA.
+# Licensed on MIT
+#
+# Check to see if Sundial booted from its fallback image and recover if it did so
+# We "recover" by copying the "old_kernel" volume over the "kernel" volume
+# and the "old_rootfs" volume over the "rootfs" volume.
+
+# u-boot adds the string "fallback" to /proc/cmdline when we boot the fallback
+# kernel.  We enable fallback processing by checking for that.
+fallback_enabled() {
+	grep -q fallback /proc/cmdline
+}
+
+copy_ubi() {
+	oldname=$1
+	newname=$2
+	echo "Copying $oldname to $newname"
+	ubirsvol /dev/ubi0 -N $newname -s `sizefromname $oldname`
+	ubiupdatevol `devfromname $newname` -s `sizefromname $oldname` `devfromname $oldname`
+}
+# We could keep a count of how many times we have booted the fallback kernel (in a row?) and only implement
+# the recovery when that exceeded a threshold (5, perhaps?).  Maybe someday.
+fallback_run() {
+	halt_sbwatchdog
+	mount_persistent
+	log_fallback FALLBACK
+	copy_ubi old_kernel kernel
+	copy_ubi old_rootfs rootfs
+	# If we don't copy "old_rootfs" to "rootfs" and if validate-rootfs mounts old_rootfs, then
+	# the sofware update mechanism (as currently implemented) will fail when it attempts to delete
+	# old_rootfs.  Since we copy old_rootfs to rootfs, validate-rootfs can freely mount "rootfs"
+	# and its checksum will pass.
+#	reboot
+}
+

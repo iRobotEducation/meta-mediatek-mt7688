@@ -1,0 +1,55 @@
+From d929ff3539f9f64173221403b603a6ca7ff849c7 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 7 Aug 2019 08:05:46 -0400
+Subject: [PATCH] Drive WDT_RST_N signal until processor is reset.
+
+---
+ arch/mips/mach-mtmips/mt7628/init.c   | 16 ++++++++++++++++
+ arch/mips/mach-mtmips/mt7628/mt7628.h |  5 +++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/arch/mips/mach-mtmips/mt7628/init.c b/arch/mips/mach-mtmips/mt7628/init.c
+index b0553fd7..79e32e48 100644
+--- a/arch/mips/mach-mtmips/mt7628/init.c
++++ b/arch/mips/mach-mtmips/mt7628/init.c
+@@ -100,5 +100,21 @@ int mach_cpu_init(void)
+ 
+ 	gd->arch.pkg = !!(val & PKG_ID);
+ 
++#ifdef CONFIG_WATCHDOG
++	/* For Sundial, we must extend the period during which the device
++	 * drives the WDT_RST_N signal to ensure that it bleeds off the
++	 * 4.7uF capacitor we attached to the PORST_N net.  Based on
++	 * one data point, we need to set the WDTRSTPD period to at
++	 * least 200us.	 We set it to its maximum value (16383us)
++	 * just becase we can.	The processor will reset (and remove
++	 * WDT_RST_N) long before those 16383 us pass.
++	 * We are careful when writing to RSTSTAT just to set the
++	 * bits we care about (WDT2SYSRST_EN, WDT2RSTO_EN, and WDTRSTPD)
++	 * without setting the "clear-on-write" bits (N9SYSRST, SWSYSRST,
++	 * and WDRST).
++	 */
++	writel(RSTSTAT_WDT2SYSRST_EN | RSTSTAT_WDT2RSTO_EN | RSTSTAT_WDTRSTPD(16383), sysc + MT76XX_RSTSTAT_OFFS);
++#endif
++
+ 	return 0;
+ }
+diff --git a/arch/mips/mach-mtmips/mt7628/mt7628.h b/arch/mips/mach-mtmips/mt7628/mt7628.h
+index 00c17bfa..5a897307 100644
+--- a/arch/mips/mach-mtmips/mt7628/mt7628.h
++++ b/arch/mips/mach-mtmips/mt7628/mt7628.h
+@@ -52,6 +52,11 @@
+ #define SYSCTL_RSTCTL_REG		0x34
+ #define MC_RST				BIT(10)
+ 
++#define MT76XX_RSTSTAT_OFFS		0x38
++#define RSTSTAT_WDT2SYSRST_EN		(1 << 31)
++#define RSTSTAT_WDT2RSTO_EN		(1 << 30)
++#define	RSTSTAT_WDTRSTPD(wdtrstpd)	((wdtrstpd) << 16)
++
+ #define RBUSCTL_DYN_CFG0_REG		0x40
+ #define CPU_FDIV_S			8
+ #define CPU_FDIV_M			GENMASK(11, 8)
+-- 
+2.24.1
+

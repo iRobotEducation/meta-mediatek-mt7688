@@ -1,0 +1,228 @@
+/dts-v1/;
+
+#include "mt7628an.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	compatible = "mediatek,showboat", "mediatek,mt7628an-soc";
+	model = "iRobot Showboat";
+
+	chosen {
+		/* Note that this gets overwritten by (newer version of) the bootloader */
+		bootargs = "console=ttyS2,115200";
+	};
+
+	aliases {
+		serial0 = &uart2;
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x4000000>;
+	};
+
+	bootstrap {
+		compatible = "mediatek,linkit";
+		status = "okay";
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		wifi {
+			label = "showboat:red:wifi";
+			gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+		        linux,default-trigger = "phy0rx";
+			default-state = "on";
+		};
+
+		power {
+			label = "showboat:green:power";
+			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+		        linux,default-trigger = "default-on";
+			default-state = "on";
+		};
+
+		debug {
+			label = "showboat:yellow:debug";
+			gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
+		        linux,default-trigger = "heartbeat";
+			default-state = "on";
+		};
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <20>;
+
+		wps {
+			label = "reset";
+			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+
+        sound {
+                compatible = "simple-audio-card";
+                status = "okay";
+                simple-audio-card,format = "i2s";
+                simple-audio-card,name = "Audio-I2S";
+                simple-audio-card,bitclock-slave = <&dailink0_slave>;
+                simple-audio-card,frame-slave = <&dailink0_slave>;
+                simple-audio-card,widgets =
+                        "Line", "Line Out",
+                        "Speaker", "Speaker";
+                simple-audio-card,routing =
+                        "Speaker", "Speaker";
+
+                simple-audio-card,mclk-fs = <256>;
+
+                simple-audio-card,cpu {
+                      sound-dai = <&i2s>;
+                };
+
+                dailink0_slave: simple-audio-card,codec {
+                        sound-dai = <&codec>;
+                };
+
+                tas2505_mclk: tas2505_mclk {
+                        compatible = "fixed-clock";
+                        #clock-cells = <0>;
+                };
+         };
+};
+
+&pinctrl {
+	state_default: pinctrl0 {
+		gpio {
+			ralink,group = "gpio";
+			ralink,function = "gpio";
+		};
+
+		spis {
+			ralink,group = "spis";
+			ralink,function = "gpio";
+		};
+
+		wled_an {
+			ralink,group = "wled_an";
+			ralink,function = "gpio";
+		};
+
+		wdt {
+			ralink,group = "wdt";
+			ralink,function = "gpio";
+		};
+
+           };
+
+           i2s_pins: i2s {
+                i2s {
+                        ralink,group = "i2s";
+                        ralink,function = "i2s";
+                };
+           };
+};
+
+&spi0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi_pins>, <&spi_cs1_pins>;
+
+	m25p80@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <40000000>;
+		m25p,chunked-io = <31>;
+
+		uboot: partition@0 {
+			label = "uboot";
+			reg = <0x0 0xf0000>;
+		};
+		factory: partition@f0000 {
+			label = "factory";
+			reg = <0xf0000 0x10000>;
+			read-only;
+		};
+	};
+
+	spidev@1 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spi-nand";
+		reg = <1>;
+		spi-max-frequency = <40000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			ubi: partition@0 {
+				label = "ubi";
+				reg = <0x0 0x8000000>;
+			};
+		};
+	};
+};
+
+
+&i2c {
+	status = "okay";
+        codec: tas2505@30 {
+                #sound-dai-cells = <0>;
+                compatible = "ti,tas2505";
+                reg = <0x18>;
+                clocks = <&tas2505_mclk>;
+                clock-names = "mclk";
+                clock-frequency = <12288000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&refclk_pins>;
+		ti,shared-lrclk;
+        };
+};
+
+&uartlite {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&pwm {
+	status = "okay";
+};
+
+&ethernet {
+	mtd-mac-address = <&factory 0x28>;
+};
+
+&wmac {
+	status = "okay";
+};
+
+&esw {
+	mediatek,portmap = <0x3>;
+	mediatek,portdisable = <0x3c>;
+};
+
+&i2s {
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+
+&gdma {
+	status = "okay";
+};

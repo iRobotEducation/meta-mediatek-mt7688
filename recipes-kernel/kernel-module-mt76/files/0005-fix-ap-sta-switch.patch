@@ -1,0 +1,37 @@
+diff -urN a/mt_wifi/embedded/mgmt/mgmt_ht.c b/mt_wifi/embedded/mgmt/mgmt_ht.c
+--- a/mt_wifi/embedded/mgmt/mgmt_ht.c	2019-09-18 07:56:31.552894266 -0400
++++ b/mt_wifi/embedded/mgmt/mgmt_ht.c	2019-09-18 07:56:44.936735851 -0400
+@@ -602,6 +602,16 @@
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("RTMPSetIndividualHT: invalid apidx(%d)\n", apidx));
+ 		return;
+ 	}
++
++	if (pAd->CommonCfg.HT_Disable)
++	{
++#ifdef CONFIG_STA_SUPPORT
++		pAd->StaCfg.bAdhocN = FALSE;
++#endif /* CONFIG_STA_SUPPORT */
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s : HT is disabled\n", __FUNCTION__));
++		return;
++	}
++	
+ 	RTMPZeroMemory(pDesired_ht_phy, sizeof(RT_PHY_INFO));
+ 
+ 	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("RTMPSetIndividualHT : Desired MCS = %d\n", DesiredMcs));
+@@ -649,7 +659,7 @@
+ 									__FUNCTION__, apidx));
+ 		return;
+ 	}
+-
++#if 0
+ 	if (pAd->CommonCfg.HT_Disable)
+ 	{
+ #ifdef CONFIG_STA_SUPPORT
+@@ -658,6 +668,7 @@
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s : HT is disabled\n", __FUNCTION__));
+ 		return;
+ 	}
++#endif	
+ 
+ #ifdef APCLI_AUTO_BW_SUPPORT
+ ht_enable:		

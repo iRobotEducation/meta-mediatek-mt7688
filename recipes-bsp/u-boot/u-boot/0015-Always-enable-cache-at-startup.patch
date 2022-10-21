@@ -1,0 +1,34 @@
+From 9dbeb44ead90eaa8c7ef0895a317354a8a1b4934 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Fri, 3 Jan 2020 10:24:27 -0500
+Subject: [PATCH] Always enable cache at startup.
+
+The logic in start.S calls `mips_cache_reset()` either before or after
+calling `lowlevel_init()` at startup depending on certain configuration
+options, but didn't call it at all if `CONFIG_SKIP_LOWLEVEL_INIT` was
+defined.  For RAM based u-boot configurations, it would be awfully nice
+if we could run with the cache enabled, so now we call
+`mips_cache_reset()` even when `CONFIG_SKIP_LOWLEVEL_INIT` is defined.
+---
+ arch/mips/cpu/start.S | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/mips/cpu/start.S b/arch/mips/cpu/start.S
+index bc21554..de9d794 100644
+--- a/arch/mips/cpu/start.S
++++ b/arch/mips/cpu/start.S
+@@ -260,6 +260,11 @@ wr_done:
+ 	jalr	t9
+ 	 nop
+ # endif
++#else
++	/* Initialize caches... */
++	PTR_LA	t9, mips_cache_reset
++	jalr	t9
++	 nop
+ #endif
+ 
+ #ifndef CONFIG_MIPS_INIT_STACK_IN_SRAM
+-- 
+2.7.4
+

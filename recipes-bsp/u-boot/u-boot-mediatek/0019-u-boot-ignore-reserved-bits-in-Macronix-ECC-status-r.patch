@@ -1,0 +1,30 @@
+From 9831ab5a0e56d1abb778d847525db416aa84fa63 Mon Sep 17 00:00:00 2001
+From: "Doshi, Saiyam" <sdoshi@irobot.com>
+Date: Fri, 20 Nov 2020 15:12:57 -0500
+Subject: [PATCH] u-boot: ignore reserved bits in Macronix ECC status register
+
+---
+ drivers/mtd/nand/spi/macronix.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/mtd/nand/spi/macronix.c b/drivers/mtd/nand/spi/macronix.c
+index 662c561e50..9477ce5f4f 100644
+--- a/drivers/mtd/nand/spi/macronix.c
++++ b/drivers/mtd/nand/spi/macronix.c
+@@ -82,6 +82,13 @@ static int mx35lf1ge4ab_ecc_get_status(struct spinand_device *spinand,
+ 		if (mx35lf1ge4ab_get_eccsr(spinand, &eccsr))
+ 			return nand->eccreq.strength;
+ 
++        /*
++         * According to the data sheet, the lower 4 bits of ECC status register
++         * contain a count of the number of bit errors that were corrected. The
++         * upper 4 bits are marked as "reserved". So ignore them.
++         */
++        eccsr &= 0x0F;
++
+ 		if (WARN_ON(eccsr > nand->eccreq.strength || !eccsr))
+ 			return nand->eccreq.strength;
+ 
+-- 
+2.27.0
+

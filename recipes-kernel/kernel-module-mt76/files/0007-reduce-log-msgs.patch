@@ -1,0 +1,21 @@
+diff -urN a/mt_wifi/embedded/common/ba_action.c b/mt_wifi/embedded/common/ba_action.c
+--- a/mt_wifi/embedded/common/ba_action.c	2019-11-18 07:51:34.653069159 -0500
++++ b/mt_wifi/embedded/common/ba_action.c	2019-11-18 07:52:42.696245842 -0500
+@@ -656,7 +656,7 @@
+ 		/* initial sequence number */
+ 		pBAEntry->LastIndSeq = RESET_RCV_SEQ; /*pFrame->BaStartSeq.field.StartSeq;*/
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("Start Seq = %08x\n",  pFrame->BaStartSeq.field.StartSeq));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Start Seq = %08x\n",  pFrame->BaStartSeq.field.StartSeq));
+ 
+ 		if (pEntry->RXBAbitmap & (1<<TID))
+ 			RTMPCancelTimer(&pBAEntry->RECBATimer, &Cancelled);
+@@ -1155,7 +1155,7 @@
+ 	{
+ 		if ((pAd->CommonCfg.bBADecline == FALSE) && IS_HT_STA(pMacEntry))
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("Rcv Wcid(%d) AddBAReq\n", Elem->Wcid));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Rcv Wcid(%d) AddBAReq\n", Elem->Wcid));
+ 			if (BARecSessionAdd(pAd, &pAd->MacTab.Content[Elem->Wcid], pAddreqFrame))
+ 			{
+ #ifdef PEER_DELBA_TX_ADAPT

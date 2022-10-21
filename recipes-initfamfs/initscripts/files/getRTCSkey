@@ -1,0 +1,29 @@
+#!/bin/sh
+# Copyright (C) 2011 O.S. Systems Software LTDA.
+# Licensed on MIT
+#
+# Decrypt the BTCS, extract the RTCS key, and stuff it in a kernel
+# keyring
+# All of the work is performed by the (compiled) extract-rtcs-key
+# command line utility.
+#
+
+getRTCSkey_enabled() {
+	return 0
+}
+
+# Find the UBI volume number for the "crypto" volume. and attempt to extract
+# RTCS key from that volume.  If that fails, attempt to extract it from the
+# "prev_crypto" volume.  If that fails, give up.
+# NOTE THAT THE uid/gid PAIR SPECIFIED BY THE "-U 999:999" PARAMETER for extract-rtcs-key
+# MUST MATCH THE USER_ADD_PARAM_${PN}-tls-isolation-process IN
+# meta-irobot-mt/recipes-support/sundial-sectools/sundial-sectools.bb
+getRTCSkey_run() {
+	if ! extract-rtcs-key -i `devfromname crypto` -k /dev/mtd2 -U 999:999 > /dev/kmsg; then
+		echo 'Failed to extract RTCS key from UBI volume "crypto", trying "prev_crypto"' > /dev/kmsg
+		if ! extract-rtcs-key -i `devfromname prev_crypto` -k /dev/mtd2 -U 999:999 > /dev/kmsg; then
+			echo 'Failed to extract RTCS key from UBI volume "prev_crypto" cloud access inhibited' > /dev/kmsg
+		fi
+	fi
+}
+

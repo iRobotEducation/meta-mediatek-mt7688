@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2018 Stefan Roese <sr@denx.de>
+ *
+ * Don't forget to review sundial-seiflash.dts if you change this file.
+ */
+
+/dts-v1/;
+
+#include "mt7628a.dtsi"
+
+/ {
+	compatible = "seeed,linkit-smart-7688", "ralink,mt7628a-soc";
+	model = "Sundial";
+
+	aliases {
+		serial0 = &uart1;
+		spi0 = &spi0;
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x08000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+	};
+
+	signature {
+		/* Create a dummy key and mark it as "required to verify configurations"
+		 * so that we always verify configurations prior to loading them.  Otherwise,
+		 * an attacker could zero the TSK blob in flash (assuming (s)he could get
+		 * access to the NOR flash) and compromise the system.
+		 */
+		key-dummy {
+			required = "conf";
+		};
+	};
+};
+
+&uart1 {
+	status = "okay";
+	clock-frequency = <40000000>;
+};
+
+&spi0 {
+	status = "okay";
+	num-cs = <2>;
+
+	spi-nor@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spi-flash", "jedec,spi-nor";
+		spi-max-frequency = <25000000>;
+		reg = <0>;
+	};
+
+	spi-nand@1 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spi-nand";
+		spi-max-frequency = <25000000>;
+		reg = <1>;
+	};
+};

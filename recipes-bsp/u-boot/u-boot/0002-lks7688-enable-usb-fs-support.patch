@@ -1,0 +1,120 @@
+From patchwork Fri Apr  5 11:44:44 2019
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [U-Boot,
+ 2/2] mips: mt76xx: linkit-smart-7688: Enable USB and FS support
+X-Patchwork-Submitter: Stefan Roese <sr@denx.de>
+X-Patchwork-Id: 1078303
+Message-Id: <20190405114444.8558-2-sr@denx.de>
+To: u-boot@lists.denx.de
+Date: Fri,  5 Apr 2019 13:44:44 +0200
+From: Stefan Roese <sr@denx.de>
+List-Id: U-Boot discussion <u-boot.lists.denx.de>
+
+This patch enables USB and file-system support on the LinkIt smart
+MT7688 module for both, the normal and the RAM default config.
+
+Signed-off-by: Stefan Roese <sr@denx.de>
+Cc: Daniel Schwierzeck <daniel.schwierzeck@gmail.com>
+---
+ configs/linkit-smart-7688-ram_defconfig | 14 +++++++++++++-
+ configs/linkit-smart-7688_defconfig     | 14 +++++++++++++-
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/configs/linkit-smart-7688-ram_defconfig b/configs/linkit-smart-7688-ram_defconfig
+index 2d3ab7e35c..4cb1d7a603 100644
+--- a/configs/linkit-smart-7688-ram_defconfig
++++ b/configs/linkit-smart-7688-ram_defconfig
+@@ -20,17 +20,21 @@ CONFIG_CMD_MEMINFO=y
+ # CONFIG_CMD_FLASH is not set
+ CONFIG_CMD_GPIO=y
+ # CONFIG_CMD_LOADS is not set
++CONFIG_CMD_PART=y
+ CONFIG_CMD_SF=y
+ CONFIG_CMD_SPI=y
++CONFIG_CMD_USB=y
+ CONFIG_CMD_DHCP=y
+ CONFIG_CMD_MII=y
+ CONFIG_CMD_PING=y
+ CONFIG_CMD_TIME=y
++CONFIG_CMD_FS_GENERIC=y
++# CONFIG_DOS_PARTITION is not set
+ CONFIG_DEFAULT_DEVICE_TREE="linkit-smart-7688"
+ CONFIG_ENV_IS_IN_SPI_FLASH=y
+ CONFIG_NET_RANDOM_ETHADDR=y
+ # CONFIG_DM_DEVICE_REMOVE is not set
+-CONFIG_HAVE_BLOCK_DEVICE=y
++CONFIG_BLK=y
+ CONFIG_CLK=y
+ CONFIG_LED=y
+ CONFIG_LED_BLINK=y
+@@ -46,6 +50,7 @@ CONFIG_PHYLIB=y
+ CONFIG_PHY_FIXED=y
+ CONFIG_MT7628_ETH=y
+ CONFIG_PHY=y
++CONFIG_MT76X8_USB_PHY=y
+ CONFIG_POWER_DOMAIN=y
+ CONFIG_RAM=y
+ CONFIG_DM_RESET=y
+@@ -54,5 +59,12 @@ CONFIG_SYS_NS16550=y
+ CONFIG_SPI=y
+ CONFIG_MT7621_SPI=y
+ CONFIG_SYSRESET_SYSCON=y
++CONFIG_USB=y
++CONFIG_DM_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_GENERIC=y
++CONFIG_USB_STORAGE=y
++CONFIG_FS_EXT4=y
++CONFIG_FS_FAT=y
+ CONFIG_LZMA=y
+ CONFIG_LZO=y
+diff --git a/configs/linkit-smart-7688_defconfig b/configs/linkit-smart-7688_defconfig
+index ad34aaf640..dd157795bd 100644
+--- a/configs/linkit-smart-7688_defconfig
++++ b/configs/linkit-smart-7688_defconfig
+@@ -24,17 +24,21 @@ CONFIG_CMD_MEMINFO=y
+ # CONFIG_CMD_FLASH is not set
+ CONFIG_CMD_GPIO=y
+ # CONFIG_CMD_LOADS is not set
++CONFIG_CMD_PART=y
+ CONFIG_CMD_SF=y
+ CONFIG_CMD_SPI=y
++CONFIG_CMD_USB=y
+ CONFIG_CMD_DHCP=y
+ CONFIG_CMD_MII=y
+ CONFIG_CMD_PING=y
+ CONFIG_CMD_TIME=y
++CONFIG_CMD_FS_GENERIC=y
++# CONFIG_DOS_PARTITION is not set
+ CONFIG_DEFAULT_DEVICE_TREE="linkit-smart-7688"
+ CONFIG_ENV_IS_IN_SPI_FLASH=y
+ CONFIG_NET_RANDOM_ETHADDR=y
+ # CONFIG_DM_DEVICE_REMOVE is not set
+-CONFIG_HAVE_BLOCK_DEVICE=y
++CONFIG_BLK=y
+ CONFIG_CLK=y
+ CONFIG_LED=y
+ CONFIG_LED_BLINK=y
+@@ -50,6 +54,7 @@ CONFIG_PHYLIB=y
+ CONFIG_PHY_FIXED=y
+ CONFIG_MT7628_ETH=y
+ CONFIG_PHY=y
++CONFIG_MT76X8_USB_PHY=y
+ CONFIG_POWER_DOMAIN=y
+ CONFIG_RAM=y
+ CONFIG_DM_RESET=y
+@@ -58,5 +63,12 @@ CONFIG_SYS_NS16550=y
+ CONFIG_SPI=y
+ CONFIG_MT7621_SPI=y
+ CONFIG_SYSRESET_SYSCON=y
++CONFIG_USB=y
++CONFIG_DM_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_GENERIC=y
++CONFIG_USB_STORAGE=y
++CONFIG_FS_EXT4=y
++CONFIG_FS_FAT=y
+ CONFIG_LZMA=y
+ CONFIG_LZO=y

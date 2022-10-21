@@ -1,0 +1,116 @@
+From 55785b70c04ca29d6b95e7eccfbde29ce2a85dee Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 7 Aug 2019 08:05:46 -0400
+Subject: [PATCH] Drive WDT_RST_N signal until processor is reset.
+
+---
+ arch/mips/mach-mt7620/cpu.c    | 50 ++++++++++++++++++++++++++++++++----------
+ arch/mips/mach-mt7620/mt76xx.h |  4 ++++
+ 2 files changed, 43 insertions(+), 11 deletions(-)
+
+diff --git a/arch/mips/mach-mt7620/cpu.c b/arch/mips/mach-mt7620/cpu.c
+index 9e0ca71..d8b75ef 100644
+--- a/arch/mips/mach-mt7620/cpu.c
++++ b/arch/mips/mach-mt7620/cpu.c
+@@ -30,22 +30,14 @@ int dram_init(void)
+ 	return 0;
+ }
+ 
+-int print_cpuinfo(void)
++static int get_sysc_base(void __iomem **sysc_base)
+ {
+-	static const char * const boot_str[] = { "PLL (3-Byte SPI Addr)",
+-						 "PLL (4-Byte SPI Addr)",
+-						 "XTAL (3-Byte SPI Addr)",
+-						 "XTAL (4-Byte SPI Addr)" };
+ 	const void *blob = gd->fdt_blob;
+-	void __iomem *sysc_base;
+-	char buf[STR_LEN + 1];
+ 	fdt_addr_t base;
+ 	fdt_size_t size;
+-	char *str;
+ 	int node;
+-	u32 val;
+ 
+-	/* Get system controller base address */
++        	/* Get system controller base address */
+ 	node = fdt_node_offset_by_compatible(blob, -1, "ralink,mt7620a-sysc");
+ 	if (node < 0)
+ 		return -FDT_ERR_NOTFOUND;
+@@ -55,7 +47,26 @@ int print_cpuinfo(void)
+ 	if (base == FDT_ADDR_T_NONE)
+ 		return -EINVAL;
+ 
+-	sysc_base = ioremap_nocache(base, size);
++	*sysc_base = ioremap_nocache(base, size);
++        return 0;
++}
++
++int print_cpuinfo(void)
++{
++	static const char * const boot_str[] = { "PLL (3-Byte SPI Addr)",
++						 "PLL (4-Byte SPI Addr)",
++						 "XTAL (3-Byte SPI Addr)",
++						 "XTAL (4-Byte SPI Addr)" };
++	void __iomem *sysc_base;
++	char buf[STR_LEN + 1];
++	char *str;
++	u32 val;
++        int ret;
++        
++	/* Get system controller base address */
++        ret = get_sysc_base(&sysc_base);
++        if (ret < 0)
++                return ret;
+ 
+ 	str = (char *)sysc_base + MT76XX_CHIPID_OFFS;
+ 	snprintf(buf, STR_LEN + 1, "%s", str);
+@@ -105,6 +116,9 @@ int arch_misc_init(void)
+ 
+ #ifdef CONFIG_WATCHDOG
+ 	/* Init watchdog */
++	void __iomem *sysc_base;
++        u32 val;
++
+ 	if (uclass_get_device_by_seq(UCLASS_WDT, 0, &watchdog_dev)) {
+ 		debug("Watchdog: Not found by seq!\n");
+ 		if (uclass_get_device(UCLASS_WDT, 0, &watchdog_dev)) {
+@@ -113,6 +127,20 @@ int arch_misc_init(void)
+ 		}
+ 	}
+ 
++        /* For Sundial, we must extend the period during which the device
++         * drives the WDT_RST_N signal to ensure that it bleeds off the
++         * 4.7uF capacitor we attached to the PORST_N net.  Based on
++         * one data point, we need to set the WDTRSTPD period to at
++         * least 200us.  We set it to its maximum value (16383us)
++         * just becase we can.  The processor will reset (and remove
++         * WDT_RST_N) long before those 16383 us pass.
++         * We are careful when writing to RSTSTAT just to set the
++         * bits we care about (WDT2SYSRST_EN, WDT2RSTO_EN, and WDTRSTPD)
++         * without setting the "clear-on-write" bits (N9SYSRST, SWSYSRST,
++         * and WDRST).
++         */
++        get_sysc_base(&sysc_base);
++        writel(RSTSTAT_WDT2SYSRST_EN | RSTSTAT_WDT2RSTO_EN | RSTSTAT_WDTRSTPD(16383), sysc_base + MT76XX_RSTSTAT_OFFS);
+ 	wdt_start(watchdog_dev, 60000, 0);	/* 60 seconds */
+ 	printf("Watchdog: Started\n");
+ #endif
+diff --git a/arch/mips/mach-mt7620/mt76xx.h b/arch/mips/mach-mt7620/mt76xx.h
+index e0de487..b11cdbd 100644
+--- a/arch/mips/mach-mt7620/mt76xx.h
++++ b/arch/mips/mach-mt7620/mt76xx.h
+@@ -11,6 +11,10 @@
+ #define MT76XX_CHIPID_OFFS	0x00
+ #define MT76XX_CHIP_REV_ID_OFFS	0x0c
+ #define MT76XX_SYSCFG0_OFFS	0x10
++#define MT76XX_RSTSTAT_OFFS	0x38
++#define 	RSTSTAT_WDT2SYSRST_EN		(1 << 31)
++#define 	RSTSTAT_WDT2RSTO_EN		(1 << 30)
++#define		RSTSTAT_WDTRSTPD(wdtrstpd)	((wdtrstpd) << 16)
+ 
+ #define MT76XX_MEMCTRL_BASE	(MT76XX_SYSCTL_BASE + 0x0300)
+ #define MT76XX_RGCTRL_BASE	(MT76XX_SYSCTL_BASE + 0x1000)
+-- 
+2.7.4
+

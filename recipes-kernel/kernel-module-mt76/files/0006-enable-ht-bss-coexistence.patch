@@ -1,0 +1,11 @@
+--- a/firmware/mt7628.dat	2019-10-07 14:52:22.000000000 -0400
++++ b/firmware/mt7628.dat	2019-10-07 14:51:46.000000000 -0400
+@@ -54,7 +54,7 @@
+ HT_RxStream=2
+ HT_PROTECT=1
+ HT_DisallowTKIP=1
+-HT_BSSCoexistence=0
++HT_BSSCoexistence=1
+ HT_LDPC=0
+ EthConvertMode=
+ EthCloneMac=

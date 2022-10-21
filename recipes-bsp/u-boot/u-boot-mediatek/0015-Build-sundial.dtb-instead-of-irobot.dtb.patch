@@ -1,0 +1,25 @@
+From 89a0adf517ec2b8c0bbdf635e86d7a1934d9b5f7 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 25 Jun 2020 11:47:33 -0400
+Subject: [PATCH] Build sundial.dtb instead of irobot.dtb.
+
+---
+ arch/mips/dts/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/mips/dts/Makefile b/arch/mips/dts/Makefile
+index 0073d1d2..e326c720 100644
+--- a/arch/mips/dts/Makefile
++++ b/arch/mips/dts/Makefile
+@@ -16,7 +16,7 @@ dtb-$(CONFIG_BOARD_COMTREND_CT5361) += comtrend,ct-5361.dtb
+ dtb-$(CONFIG_BOARD_COMTREND_VR3032U) += comtrend,vr-3032u.dtb
+ dtb-$(CONFIG_BOARD_COMTREND_WAP5813N) += comtrend,wap-5813n.dtb
+ dtb-$(CONFIG_BOARD_HUAWEI_HG556A) += huawei,hg556a.dtb
+-dtb-$(CONFIG_BOARD_IROBOT_7688) += iRobot.dtb
++dtb-$(CONFIG_BOARD_IROBOT_7688) += sundial.dtb
+ dtb-$(CONFIG_BOARD_MT7628_RFB) += mediatek,mt7628-rfb.dtb
+ dtb-$(CONFIG_BOARD_NETGEAR_CG3100D) += netgear,cg3100d.dtb
+ dtb-$(CONFIG_BOARD_NETGEAR_DGND3700V2) += netgear,dgnd3700v2.dtb
+-- 
+2.24.1
+

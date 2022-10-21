@@ -1,0 +1,11 @@
+--- a/firmware/mt7628.dat	2019-05-23 12:47:24.000000000 -0400
++++ b/firmware/mt7628.dat	2019-09-05 12:01:02.000000000 -0400
+@@ -42,7 +42,7 @@
+ HT_OpMode=0
+ HT_MpduDensity=5
+ HT_EXTCHA=0
+-HT_BW=0
++HT_BW=1
+ HT_AutoBA=1
+ HT_BADecline=0
+ HT_AMSDU=0

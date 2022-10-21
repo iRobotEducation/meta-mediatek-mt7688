@@ -1,0 +1,24 @@
+From 67872900e204cf7827d3b8590d6575fb6cc5a6d5 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 24 Jun 2020 19:27:18 -0400
+Subject: [PATCH] Increase the drive strength to 0x0c0c
+
+---
+ arch/mips/mach-mt7620/lowlevel_init.S | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/mips/mach-mt7620/lowlevel_init.S b/arch/mips/mach-mt7620/lowlevel_init.S
+index 60754584fe..3af548450f 100644
+--- a/arch/mips/mach-mt7620/lowlevel_init.S
++++ b/arch/mips/mach-mt7620/lowlevel_init.S
+@@ -204,6 +204,7 @@ SET_PAD_CFG:
+ 	sw	t2, 0x704(s2)
+ 	sw	t3, 0x70c(s2)
+ 	sw	t4, 0x710(s2)
++	li	t5, 0x0c0c // Per Seth's request, based on 'scope traces
+ 	sw	t5, 0x714(s2)
+ 	sw	t6, 0x718(s2)
+ 	sw	t7, 0x71c(s2)
+-- 
+2.24.1
+

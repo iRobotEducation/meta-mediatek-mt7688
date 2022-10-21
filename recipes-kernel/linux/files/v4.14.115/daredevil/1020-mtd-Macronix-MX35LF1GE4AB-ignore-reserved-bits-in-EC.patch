@@ -1,0 +1,25 @@
+From 7b2e5ce641da16d0e5105105fbe3189f209f50b4 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 12 Aug 2020 09:11:42 -0400
+Subject: [PATCH] mtd: Macronix MX35LF1GE4AB - ignore reserved bits in ECCSR
+
+Signed-off-by: Patrick Doyle <pdoyle@irobot.com>
+---
+ drivers/mtd/nand/spi/macronix.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/mtd/nand/spi/macronix.c b/drivers/mtd/nand/spi/macronix.c
+index 98f6b9c4b684..6ef3f6bc6657 100644
+--- a/drivers/mtd/nand/spi/macronix.c
++++ b/drivers/mtd/nand/spi/macronix.c
+@@ -80,6 +80,7 @@ static int mx35lf1ge4ab_ecc_get_status(struct spinand_device *spinand,
+ 		if (mx35lf1ge4ab_get_eccsr(spinand, &eccsr))
+ 			return nand->eccreq.strength;
+ 
++		eccsr &= 0x0F; // Upper 4 bits are reserved
+ 		if (WARN_ON(eccsr > nand->eccreq.strength || !eccsr))
+ 			return nand->eccreq.strength;
+ 
+-- 
+2.24.1
+

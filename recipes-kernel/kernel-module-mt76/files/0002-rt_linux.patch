@@ -1,0 +1,58 @@
+--- a/mt_wifi/embedded/os/linux/rt_linux.c	2019-07-18 21:27:17.188695000 -0700
++++ b/mt_wifi/embedded/os/linux/rt_linux.c	2019-07-19 08:16:08.739289000 -0700
+@@ -2028,7 +2028,7 @@
+ 			 ("-->2) %s: Error %ld opening %s\n", __FUNCTION__,
+ 			  -PTR_ERR(file_w), fileName));
+ 	} else {
+-		if (file_w->f_op && file_w->f_op->write) {
++		if (file_w->f_op) {
+ 			file_w->f_pos = 0;
+ 			macAddr = AddrStart;
+ 
+@@ -2038,9 +2038,10 @@
+ 				sprintf(msg, "%04x = %08x\n", macAddr, macValue);
+ 
+ 				/* write data to file */
+-				file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
++				kernel_write(file_w, msg, strlen(msg), &file_w->f_pos);
+ 
+-				printk("%s", msg);
++				printk("+++++%s+++++", msg);
++				printk("file operation successful\n");
+ 				macAddr += AddrStep;
+ 			}
+ 			sprintf(msg, "\nDump all MAC values to %s\n", fileName);
+@@ -2079,7 +2080,7 @@
+ 			 ("-->2) %s: Error %ld opening %s\n", __FUNCTION__,
+ 			  -PTR_ERR(file_w), fileName));
+ 	} else {
+-		if (file_w->f_op && file_w->f_op->write) {
++		if (file_w->f_op) {
+ 			file_w->f_pos = 0;
+ 			eepAddr = 0x00;
+ 
+@@ -2088,9 +2089,10 @@
+ 				sprintf(msg, "%08x = %04x\n", eepAddr, eepValue);
+ 
+ 				/* write data to file */
+-				file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
++				kernel_write(file_w, msg, strlen(msg), &file_w->f_pos);
+ 
+ 				printk("%s", msg);
++				printk("file operation successful\n");
+ 				eepAddr += AddrStep;
+ 				pMacContent += (AddrStep >> 1);
+ 			}
+@@ -2123,10 +2125,10 @@
+ 			 ("-->2) %s: Error %ld opening %s\n", __FUNCTION__,
+ 			  -PTR_ERR(file_w), fileName));
+ 	} else {
+-		if (file_w->f_op && file_w->f_op->write) {
++		if (file_w->f_op) {
+ 			file_w->f_pos = 0;
+ 			/* write data to file */
+-			file_w->f_op->write(file_w, pBuf, BufLen, &file_w->f_pos);
++			kernel_write(file_w, pBuf, BufLen, &file_w->f_pos);
+ 		}
+ 		filp_close(file_w, NULL);
+ 	}

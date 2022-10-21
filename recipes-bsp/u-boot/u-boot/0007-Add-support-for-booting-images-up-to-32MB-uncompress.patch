@@ -1,0 +1,32 @@
+From 64a0c3c0f9e64404ee4c1dcbd8860bfa19a55394 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Fri, 21 Jun 2019 14:41:06 -0400
+Subject: [PATCH] Add support for booting images up to 32MB uncompressed.
+
+---
+ include/configs/linkit-smart-7688.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/configs/linkit-smart-7688.h b/include/configs/linkit-smart-7688.h
+index 1dbda0a..a3fb300 100644
+--- a/include/configs/linkit-smart-7688.h
++++ b/include/configs/linkit-smart-7688.h
+@@ -5,6 +5,7 @@
+ 
+ #ifndef __CONFIG_LINKIT_SMART_7688_H
+ #define __CONFIG_LINKIT_SMART_7688_H
++#include <linux/sizes.h>
+ 
+ /* CPU */
+ #define CONFIG_SYS_MIPS_TIMER_FREQ	290000000
+@@ -48,4 +49,7 @@
+  */
+ #define CONFIG_BOARD_SIZE_LIMIT		CONFIG_ENV_OFFSET
+ 
++/* Allow uncompressed images up to 32MB (of our 64) */
++#define CONFIG_SYS_BOOTM_LEN		SZ_32M
++
+ #endif /* __CONFIG_LINKIT_SMART_7688_H */
+-- 
+2.7.4
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Use the "Magic Close" feature of the watchdog driver to disable the watchdog
+# See Documentation/watchdog/watchdog-api.txt in the kernel tree.
+# All we do is echo "V" into /dev/watchdog to disable the watchdog.
+
+[ -e /dev/watchdog ] && echo -n "V" > /dev/watchdog

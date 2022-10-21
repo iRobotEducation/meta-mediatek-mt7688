@@ -1,0 +1,12 @@
+diff -urN a/mt_wifi/chips/mt7628.c b/mt_wifi/chips/mt7628.c
+--- a/mt_wifi/chips/mt7628.c	2019-09-03 13:44:29.911873306 -0400
++++ b/mt_wifi/chips/mt7628.c	2019-09-03 13:44:37.923827389 -0400
+@@ -1208,7 +1208,7 @@
+ 		
+ 	}
+ 	
+-	if (strncmp(pAd->CommonCfg.CountryCode, "JP", 2) == 0)
++	if (strncmp(pAd->cfg80211_ctrl.Cfg80211_Alpha2, "JP", 2) == 0)
+ 	{
+ 		/* disable NBID for JAPAN carrier sense test mac, 0610[24]=0 [31]=0 */		
+ 		RTMP_IO_READ32(pAd, WF_PHY_BASE + 0x0610, &NBIDmacVal);

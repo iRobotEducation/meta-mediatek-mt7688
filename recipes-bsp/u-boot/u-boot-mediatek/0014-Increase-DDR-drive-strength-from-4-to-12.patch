@@ -1,0 +1,26 @@
+From 4d905f5be3ca1f573c8eaca77e55b90e4acf5833 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 24 Jun 2020 14:24:14 -0400
+Subject: [PATCH] Increase DDR drive strength from 4 to 12
+
+---
+ arch/mips/mach-mtmips/mt7628/ddr.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/mips/mach-mtmips/mt7628/ddr.c b/arch/mips/mach-mtmips/mt7628/ddr.c
+index 8ef5c69e..4966aeda 100644
+--- a/arch/mips/mach-mtmips/mt7628/ddr.c
++++ b/arch/mips/mach-mtmips/mt7628/ddr.c
+@@ -274,7 +274,8 @@ static void mt7628_ddr_pad_ldo_config(int ddr_type, int pkg_type)
+ 		if (ddr_type == DRAM_DDR1)
+ 			dq_pad1 |= (7 << DRVP_S) | (7 << DRVN_S);
+ 		else
+-			dq_pad1 |= (4 << DRVP_S) | (4 << DRVN_S);
++			//dq_pad1 |= (4 << DRVP_S) | (4 << DRVN_S);
++			dq_pad1 |= (12 << DRVP_S) | (12 << DRVN_S); // Increase drive strength for Sundial
+ 	}
+ 
+ 	writel(ck_pad1, rgc + RGCTL_DDR_PAD_CK_G1_REG);
+-- 
+2.24.1
+

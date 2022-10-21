@@ -1,0 +1,25 @@
+From d367302a1e51e6d166ada59f53fd4de8b0fd8bcb Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Mon, 2 Dec 2019 19:49:30 -0500
+Subject: [PATCH] Allow initrd below PAGE_OFFSET
+
+---
+ arch/mips/kernel/setup.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/mips/kernel/setup.c b/arch/mips/kernel/setup.c
+index 18a1480..ee81eed 100644
+--- a/arch/mips/kernel/setup.c
++++ b/arch/mips/kernel/setup.c
+@@ -257,7 +257,7 @@ static unsigned long __init init_initrd(void)
+ 		pr_err("initrd start must be page aligned\n");
+ 		goto disable;
+ 	}
+-	if (initrd_start < PAGE_OFFSET) {
++	if (!initrd_below_start_ok && initrd_start < PAGE_OFFSET) {
+ 		pr_err("initrd start < PAGE_OFFSET\n");
+ 		goto disable;
+ 	}
+-- 
+2.7.4
+

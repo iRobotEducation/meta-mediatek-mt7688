@@ -1,0 +1,43 @@
+From 96ba7f28a427fd86f9e73707bdebe0604ac23edb Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Mon, 22 Jun 2020 16:35:08 -0400
+Subject: [PATCH] Display u-boot version and DQS calibration status at boot
+
+---
+ arch/mips/mach-mt7620/cpu.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/arch/mips/mach-mt7620/cpu.c b/arch/mips/mach-mt7620/cpu.c
+index d8b75ef335..c2892cf14f 100644
+--- a/arch/mips/mach-mt7620/cpu.c
++++ b/arch/mips/mach-mt7620/cpu.c
+@@ -51,6 +51,9 @@ static int get_sysc_base(void __iomem **sysc_base)
+         return 0;
+ }
+ 
++#define xstr(s) str(s)
++#define str(s) #s
++
+ int print_cpuinfo(void)
+ {
+ 	static const char * const boot_str[] = { "PLL (3-Byte SPI Addr)",
+@@ -68,6 +71,16 @@ int print_cpuinfo(void)
+         if (ret < 0)
+                 return ret;
+ 
++	printf("iRobot Version: " xstr(IROBOT_UBOOT_VERSION) "\n");
++	u32 ddr_dqs_dly = readl(sysc_base + 0x364);
++	u32 ddr_dqs_dly_computed = readl(sysc_base + 0x68);
++	if (ddr_dqs_dly == ddr_dqs_dly_computed) {
++		printf("DDR DQS calibrated: DDR_DQS_DLY=0x%08X\n", ddr_dqs_dly);
++	} else {
++		printf("DDR DQS calibration repaired DDR_DQS_DLY=0x%08X (computed value was 0x%08X)\n",
++		       ddr_dqs_dly, ddr_dqs_dly_computed);
++	}
++
+ 	str = (char *)sysc_base + MT76XX_CHIPID_OFFS;
+ 	snprintf(buf, STR_LEN + 1, "%s", str);
+ 	val = readl(sysc_base + MT76XX_CHIP_REV_ID_OFFS);
+-- 
+2.24.1
+

@@ -1,0 +1,158 @@
+To address serial port latency issues, use a kthread_worker instead of
+workqueues.
+Patches ported from from "Steven Walter - see http://www.spinics.net/lists/linux-serial/msg17773.html"
+diff --git a/drivers/tty/tty_buffer.c b/drivers/tty/tty_buffer.c
+index cf11882..aeace68 100644
+--- a/drivers/tty/tty_buffer.c
++++ b/drivers/tty/tty_buffer.c
+@@ -3,6 +3,7 @@
+  */
+ 
+ #include <linux/types.h>
++#include <linux/kthread.h>
+ #include <linux/errno.h>
+ #include <linux/tty.h>
+ #include <linux/tty_driver.h>
+@@ -10,7 +11,8 @@
+ #include <linux/timer.h>
+ #include <linux/string.h>
+ #include <linux/slab.h>
+-#include <linux/sched.h>
++#include <linux/sched/rt.h>
++#include <linux/sched/types.h>
+ #include <linux/wait.h>
+ #include <linux/bitops.h>
+ #include <linux/delay.h>
+@@ -61,6 +63,9 @@ void tty_buffer_lock_exclusive(struct tty_port *port)
+ }
+ EXPORT_SYMBOL_GPL(tty_buffer_lock_exclusive);
+ 
++static DEFINE_KTHREAD_WORKER(tty_buffer_worker);
++static DEFINE_KTHREAD_WORKER(tty_buffer_worker_ll);
++
+ void tty_buffer_unlock_exclusive(struct tty_port *port)
+ {
+ 	struct tty_bufhead *buf = &port->buf;
+@@ -71,7 +76,12 @@ void tty_buffer_unlock_exclusive(struct tty_port *port)
+ 	atomic_dec(&buf->priority);
+ 	mutex_unlock(&buf->lock);
+ 	if (restart)
+-		queue_work(system_unbound_wq, &buf->work);
++	{
++	  if (port->low_latency)
++	    return kthread_queue_work(&tty_buffer_worker_ll, &port->buf.work);
++	  else
++	    return kthread_queue_work(&tty_buffer_worker, &port->buf.work);
++	}
+ }
+ EXPORT_SYMBOL_GPL(tty_buffer_unlock_exclusive);
+ 
+@@ -404,7 +414,10 @@ void tty_schedule_flip(struct tty_port *port)
+ 	 * flush_to_ldisc() sees buffer data.
+ 	 */
+ 	smp_store_release(&buf->tail->commit, buf->tail->used);
+-	queue_work(system_unbound_wq, &buf->work);
++	if (port->low_latency)
++	  return kthread_queue_work(&tty_buffer_worker_ll, &port->buf.work);
++	else
++	  return kthread_queue_work(&tty_buffer_worker, &port->buf.work);
+ }
+ EXPORT_SYMBOL(tty_schedule_flip);
+ 
+@@ -491,7 +504,7 @@ receive_buf(struct tty_port *port, struct tty_buffer *head, int count)
+  *		 'consumer'
+  */
+ 
+-static void flush_to_ldisc(struct work_struct *work)
++static void flush_to_ldisc(struct kthread_work *work)
+ {
+ 	struct tty_port *port = container_of(work, struct tty_port, buf.work);
+ 	struct tty_bufhead *buf = &port->buf;
+@@ -570,7 +583,7 @@ void tty_buffer_init(struct tty_port *port)
+ 	init_llist_head(&buf->free);
+ 	atomic_set(&buf->mem_used, 0);
+ 	atomic_set(&buf->priority, 0);
+-	INIT_WORK(&buf->work, flush_to_ldisc);
++	kthread_init_work(&buf->work, flush_to_ldisc);
+ 	buf->mem_limit = TTYB_DEFAULT_MEM_LIMIT;
+ }
+ 
+@@ -599,15 +612,31 @@ void tty_buffer_set_lock_subclass(struct tty_port *port)
+ 
+ bool tty_buffer_restart_work(struct tty_port *port)
+ {
+-	return queue_work(system_unbound_wq, &port->buf.work);
++	if (port->low_latency)
++	  return kthread_queue_work(&tty_buffer_worker_ll, &port->buf.work);
++	else
++	  return kthread_queue_work(&tty_buffer_worker, &port->buf.work);
+ }
+ 
+ bool tty_buffer_cancel_work(struct tty_port *port)
+ {
+-	return cancel_work_sync(&port->buf.work);
++	return kthread_cancel_work_sync(&port->buf.work);
+ }
+ 
+ void tty_buffer_flush_work(struct tty_port *port)
+ {
+-	flush_work(&port->buf.work);
++	kthread_flush_work(&port->buf.work);
+ }
++
++void tty_buffer_init_kthread()
++{
++	struct task_struct *task;
++	/* Use same default priority as threaded irq handlers */
++	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO/2 };
++
++	kthread_run(kthread_worker_fn, &tty_buffer_worker, "tty");
++	task = kthread_run(kthread_worker_fn, &tty_buffer_worker_ll,
++			   "tty-low-latency");
++	sched_setscheduler(task, SCHED_FIFO, &param);
++}
++
+diff --git a/drivers/tty/tty_io.c b/drivers/tty/tty_io.c
+index dba4f53..dd9afc1 100644
+--- a/drivers/tty/tty_io.c
++++ b/drivers/tty/tty_io.c
+@@ -3334,6 +3334,7 @@ void console_sysfs_notify(void)
+  */
+ int __init tty_init(void)
+ {
++        tty_buffer_init_kthread();
+ 	tty_sysctl_init();
+ 	cdev_init(&tty_cdev, &tty_fops);
+ 	if (cdev_add(&tty_cdev, MKDEV(TTYAUX_MAJOR, 0), 1) ||
+diff --git a/include/linux/tty.h b/include/linux/tty.h
+index 1dd587ba..3c57fc1 100644
+--- a/include/linux/tty.h
++++ b/include/linux/tty.h
+@@ -3,9 +3,9 @@
+ #define _LINUX_TTY_H
+ 
+ #include <linux/fs.h>
++#include <linux/kthread.h>
+ #include <linux/major.h>
+ #include <linux/termios.h>
+-#include <linux/workqueue.h>
+ #include <linux/tty_driver.h>
+ #include <linux/tty_ldisc.h>
+ #include <linux/mutex.h>
+@@ -83,7 +83,7 @@ static inline char *flag_buf_ptr(struct tty_buffer *b, int ofs)
+ 
+ struct tty_bufhead {
+ 	struct tty_buffer *head;	/* Queue head */
+-	struct work_struct work;
++	struct kthread_work work;
+ 	struct mutex	   lock;
+ 	atomic_t	   priority;
+ 	struct tty_buffer sentinel;
+@@ -500,6 +500,7 @@ extern void no_tty(void);
+ extern void tty_buffer_free_all(struct tty_port *port);
+ extern void tty_buffer_flush(struct tty_struct *tty, struct tty_ldisc *ld);
+ extern void tty_buffer_init(struct tty_port *port);
++extern void tty_buffer_init_kthread(void);
+ extern void tty_buffer_set_lock_subclass(struct tty_port *port);
+ extern bool tty_buffer_restart_work(struct tty_port *port);
+ extern bool tty_buffer_cancel_work(struct tty_port *port);

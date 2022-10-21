@@ -1,0 +1,2262 @@
+From 44a20d11ed458b3fcf7db9699f328ca2a94a3a1b Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 10 Jun 2020 10:23:31 -0400
+Subject: [PATCH] Make Wi-Fi driver less chatty.
+
+Examined the output of `grep DBG_LVL_ERROR -r .` and selectively changed
+`DBG_LEVEL_ERROR` to `DBG_LEVEL_TRACE` in places where it looked like
+the code wasn't (necessarily) traversing an error path.
+---
+ mt_wifi/embedded/ap/ap.c                      |  8 +--
+ mt_wifi/embedded/ap/ap_apcli.c                |  6 +-
+ mt_wifi/embedded/ap/ap_assoc.c                |  4 +-
+ mt_wifi/embedded/ap/ap_cfg.c                  | 34 +++++-----
+ mt_wifi/embedded/ap/ap_data.c                 |  2 +-
+ mt_wifi/embedded/ap/ap_repeater.c             |  2 +-
+ mt_wifi/embedded/ap/ap_sync.c                 |  2 +-
+ mt_wifi/embedded/ap/apcli_assoc.c             |  2 +-
+ mt_wifi/embedded/ap/apcli_auth.c              |  4 +-
+ mt_wifi/embedded/ap/apcli_ctrl.c              | 14 ++--
+ mt_wifi/embedded/common/action.c              | 10 +--
+ mt_wifi/embedded/common/ba_action.c           |  2 +-
+ mt_wifi/embedded/common/cmm_cfg.c             | 12 ++--
+ mt_wifi/embedded/common/cmm_data.c            |  8 +--
+ mt_wifi/embedded/common/cmm_dfs.c             |  2 +-
+ mt_wifi/embedded/common/cmm_info.c            | 68 +++++++++----------
+ mt_wifi/embedded/common/cmm_mac_pci.c         | 30 ++++----
+ mt_wifi/embedded/common/cmm_profile.c         | 10 +--
+ mt_wifi/embedded/common/cmm_rf_cal.c          | 14 ++--
+ mt_wifi/embedded/common/cmm_sanity.c          |  8 +--
+ mt_wifi/embedded/common/cmm_usb_io.c          | 10 +--
+ mt_wifi/embedded/common/cmm_wpa.c             |  4 +-
+ mt_wifi/embedded/common/ee_efuse.c            |  2 +-
+ mt_wifi/embedded/common/mt_ps.c               | 14 ++--
+ mt_wifi/embedded/common/multi_channel.c       | 10 +--
+ mt_wifi/embedded/common/pmf.c                 | 36 +++++-----
+ mt_wifi/embedded/common/rtmp_init_inf.c       |  2 +-
+ mt_wifi/embedded/common/scan.c                |  2 +-
+ mt_wifi/embedded/common/wnm.c                 |  8 +--
+ mt_wifi/embedded/common/wsc.c                 |  8 +--
+ mt_wifi/embedded/common/wsc_tlv.c             | 22 +++---
+ mt_wifi/embedded/mcu/andes_mt.c               |  4 +-
+ mt_wifi/embedded/os/linux/cfg80211/cfg80211.c | 12 ++--
+ .../embedded/os/linux/cfg80211/cfg80211_ap.c  | 16 ++---
+ .../embedded/os/linux/cfg80211/cfg80211_inf.c |  4 +-
+ .../embedded/os/linux/cfg80211/cfg80211_p2p.c |  2 +-
+ .../embedded/os/linux/cfg80211/cfg80211_rx.c  | 26 +++----
+ .../os/linux/cfg80211/cfg80211_tdls.c         | 50 +++++++-------
+ .../os/linux/cfg80211/cfg80211_util.c         | 14 ++--
+ .../embedded/os/linux/cfg80211/cfg80211drv.c  | 14 ++--
+ mt_wifi/embedded/os/linux/pci_main_dev.c      |  2 +-
+ mt_wifi/embedded/os/linux/rt_profile.c        |  2 +-
+ mt_wifi/embedded/os/linux/rt_rbus_pci_drv.c   | 26 +++----
+ mt_wifi/embedded/tx_rx/txs.c                  |  4 +-
+ mt_wifi/embedded/tx_rx/wdev_rx.c              |  8 +--
+ 45 files changed, 272 insertions(+), 272 deletions(-)
+
+diff --git a/mt_wifi/embedded/ap/ap.c b/mt_wifi/embedded/ap/ap.c
+index 2da747c..dbfad46 100644
+--- a/mt_wifi/embedded/ap/ap.c
++++ b/mt_wifi/embedded/ap/ap.c
+@@ -348,7 +348,7 @@ static INT ap_pmf_init(RTMP_ADAPTER *pAd, BSS_STRUCT *pMbss, INT idx)
+                     MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: Security is not WPA2/WPA2PSK AES\n", __FUNCTION__));
+ 	}
+ 
+-            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: apidx=%d, MFPC=%d, MFPR=%d, SHA256=%d\n",
++            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: apidx=%d, MFPC=%d, MFPR=%d, SHA256=%d\n",
+ 						__FUNCTION__, idx, pMbss->PmfCfg.MFPC,
+ 						pMbss->PmfCfg.MFPR, pMbss->PmfCfg.PMFSHA256));
+     return TRUE;
+@@ -1637,7 +1637,7 @@ VOID MacTableMaintenance(RTMP_ADAPTER *pAd)
+ 			}
+ 
+ 			Reason = REASON_DISASSOC_INACTIVE;
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("BTM ASSOC - Send DISASSOC  Reason = %d frame  TO %x %x %x %x %x %x \n",Reason,pEntry->Addr[0],
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("BTM ASSOC - Send DISASSOC  Reason = %d frame  TO %x %x %x %x %x %x \n",Reason,pEntry->Addr[0],
+ 				pEntry->Addr[1],pEntry->Addr[2],pEntry->Addr[3],pEntry->Addr[4],pEntry->Addr[5]));
+ 			MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pEntry->Addr, pMbss->wdev.if_addr, pMbss->wdev.bssid);
+ 			MakeOutgoingFrame(pOutBuffer, &FrameLen, sizeof(HEADER_802_11), &DisassocHdr, 2, &Reason, END_OF_ARGS);
+@@ -2317,7 +2317,7 @@ VOID ApUpdateAccessControlList(RTMP_ADAPTER *pAd, UCHAR Apidx)
+ 				}
+ 
+ 				Reason = REASON_DECLINED;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ASSOC - Send DISASSOC  Reason = %d frame  TO %x %x %x %x %x %x \n",
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ASSOC - Send DISASSOC  Reason = %d frame  TO %x %x %x %x %x %x \n",
+ 							Reason, PRINT_MAC(pEntry->Addr)));
+ 				MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0,
+ 									pEntry->Addr,
+@@ -2633,7 +2633,7 @@ VOID APOverlappingBSSScan(RTMP_ADAPTER *pAd)
+ 		Channel = pAd->ChannelList[index].Channel;
+ 		AsicSetChannel(pAd, Channel, BW_20,  EXTCHA_NONE, TRUE);
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("SYNC - BBP R4 to 20MHz.l\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("SYNC - BBP R4 to 20MHz.l\n"));
+ 		/*MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Passive scanning for Channel %d.....\n", Channel)); */
+ 		OS_WAIT(300); /* wait for 200 ms at each channel. */
+ 	}
+diff --git a/mt_wifi/embedded/ap/ap_apcli.c b/mt_wifi/embedded/ap/ap_apcli.c
+index 463f8a7..2a0f9a5 100644
+--- a/mt_wifi/embedded/ap/ap_apcli.c
++++ b/mt_wifi/embedded/ap/ap_apcli.c
+@@ -291,7 +291,7 @@ BOOLEAN ApCliCheckHt(
+ 			}
+ 		}
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ApCliCheckHt :  channel=%u,  CentralChannel=%u, bw=%u\n", pApCliEntry->wdev.channel, pApCliEntry->wdev.CentralChannel, pApCliEntry->wdev.bw));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ApCliCheckHt :  channel=%u,  CentralChannel=%u, bw=%u\n", pApCliEntry->wdev.channel, pApCliEntry->wdev.CentralChannel, pApCliEntry->wdev.bw));
+ 		
+ 	}				
+ #endif /* CONFIG_MULTI_CHANNEL */
+@@ -377,7 +377,7 @@ BOOLEAN ApCliLinkUp(RTMP_ADAPTER *pAd, UCHAR ifIndex)
+ 						if (pNetDev->priv_flags == IFF_EBRIDGE)
+ 						{
+ 							COPY_MAC_ADDR(pAd->ApCfg.BridgeAddress, pNetDev->dev_addr);
+-							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (" Bridge Addr = %02X:%02X:%02X:%02X:%02X:%02X. !!!\n",
++							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (" Bridge Addr = %02X:%02X:%02X:%02X:%02X:%02X. !!!\n",
+ 										PRINT_MAC(pAd->ApCfg.BridgeAddress)));
+ 
+ 						}
+@@ -434,7 +434,7 @@ BOOLEAN ApCliLinkUp(RTMP_ADAPTER *pAd, UCHAR ifIndex)
+ 
+ #ifdef MAC_REPEATER_SUPPORT
+ 		if (CliIdx != 0xFF)
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) ifIndex = %d, CliIdx = %d !!!\n", __FUNCTION__, ifIndex, CliIdx));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) ifIndex = %d, CliIdx = %d !!!\n", __FUNCTION__, ifIndex, CliIdx));
+ #endif /* MAC_REPEATER_SUPPORT */
+ 
+ 		pApCliEntry = &pAd->ApCfg.ApCliTab[ifIndex];
+diff --git a/mt_wifi/embedded/ap/ap_assoc.c b/mt_wifi/embedded/ap/ap_assoc.c
+index 530ae74..8d26583 100644
+--- a/mt_wifi/embedded/ap/ap_assoc.c
++++ b/mt_wifi/embedded/ap/ap_assoc.c
+@@ -1823,7 +1823,7 @@ SendAssocResponse:
+ 				}
+ 
+ 				pEntry->PMKID_CacheIdx = CacheIdx;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ASSOC - 2.PMKID matched and start key cache algorithm\n"));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ASSOC - 2.PMKID matched and start key cache algorithm\n"));
+ 			}
+ 			else
+ 			{
+@@ -2160,7 +2160,7 @@ VOID APMlmeKickOutAllSta(RTMP_ADAPTER *pAd, UCHAR apidx, USHORT Reason)
+         NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);
+         if (NStatus != NDIS_STATUS_SUCCESS)
+             return;
+-        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Send DISASSOC Broadcast frame(%d) with ra%d \n", Reason, apidx));
++        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Send DISASSOC Broadcast frame(%d) with ra%d \n", Reason, apidx));
+ 
+         /* 802.11 Header */
+         NdisZeroMemory(&DisassocHdr, sizeof(HEADER_802_11));
+diff --git a/mt_wifi/embedded/ap/ap_cfg.c b/mt_wifi/embedded/ap/ap_cfg.c
+index 9ff5337..b4ea497 100755
+--- a/mt_wifi/embedded/ap/ap_cfg.c
++++ b/mt_wifi/embedded/ap/ap_cfg.c
+@@ -3424,17 +3424,15 @@ INT RTMPAPSetInformation(
+ 					    APMakeAllBssBeacon(pAd);
+ 					    APUpdateAllBeaconFrame(pAd);
+ 						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Enable Airplay Support!\n"));
+-					    printk("[wifi]=== Enable Airplay ===\n");
+ 					}
+ 					else
+ 					{
+ 						pAd->bAirplayEnable = FALSE;
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Disable Airplay Support!\n"));
+-						printk("[wifi]=== Disable Airplay ===\n");
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Disable Airplay Support!\n"));
+ 					}
+ 				}
+ 				else
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Set::OID_AIRPLAY_ENABLE error!!\n"));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Set::OID_AIRPLAY_ENABLE error!!\n"));
+ 			}
+ 		}
+ 		break;
+@@ -4964,7 +4962,7 @@ INT Set_ChGeography_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	pAd->CommonCfg.CountryCode[2] =
+ 		(pAd->CommonCfg.Geography == BOTH) ? ' ' : ((pAd->CommonCfg.Geography == IDOR) ? 'I' : 'O');
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Set_ChannelGeography_Proc:: Geography = %s\n", pAd->CommonCfg.Geography == ODOR ? "out-door" : (pAd->CommonCfg.Geography == IDOR ? "in-door" : "both")));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Set_ChannelGeography_Proc:: Geography = %s\n", pAd->CommonCfg.Geography == ODOR ? "out-door" : (pAd->CommonCfg.Geography == IDOR ? "in-door" : "both")));
+ 
+ 	/* After Set ChGeography need invoke SSID change procedural again for Beacon update. */
+ 	/* it's no longer necessary since APStartUp will rebuild channel again. */
+@@ -8284,7 +8282,7 @@ VOID RTMPAPIoctlBBP(
+ 
+ 	if (!bAllowDump)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Dump BBP msg[%d]=\n", (UINT32)strlen(msg)));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Dump BBP msg[%d]=\n", (UINT32)strlen(msg)));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s\n", msg));
+ 	}
+ 
+@@ -8650,7 +8648,7 @@ VOID RTMPAPIoctlRF(
+ 
+ 	if (!bFromUI)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Dump RF msg[%d]=\n", (UINT32)strlen(msg)));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Dump RF msg[%d]=\n", (UINT32)strlen(msg)));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s\n", msg));
+ 	}
+ 
+@@ -11903,7 +11901,7 @@ INT Set_DisConnectAllSta_Proc(
+ 		{
+ 			MAC_TABLE_ENTRY *pEntry = &pAd->MacTab.Content[i];
+ 			if (IS_ENTRY_CLIENT(pEntry)) {
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s: MacTableDeleteEntry %x:%x:%x:%x:%x:%x\n",
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s: MacTableDeleteEntry %x:%x:%x:%x:%x:%x\n",
+ 						__FUNCTION__, PRINT_MAC(pEntry->Addr)));
+ 				MacTableDeleteEntry(pAd, pEntry->wcid, pEntry->Addr);
+ 			}
+@@ -12716,19 +12714,19 @@ INT	Show_MbssInfo_Display_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	UCHAR PhyMode;
+ 	CHAR *mod_str = NULL;
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\n\tBSS Idx\t\tPhy Mode\n"));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\n\tBSS Idx\t\tPhy Mode\n"));
+ 
+ 	for(IdBss=0; IdBss<=pAd->ApCfg.BssidNum; IdBss++)
+ 	{
+ 		if (IdBss == 0)
+ 		{
+ 			PhyMode = pAd->CommonCfg.PhyMode;
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tMAX\t\t"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tMAX\t\t"));
+ 		}
+ 		else
+ 		{
+ 			PhyMode = pAd->ApCfg.MBSSID[IdBss-1].wdev.PhyMode;
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d\t\t", IdBss-1));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d\t\t", IdBss-1));
+ 		} /* End of if */
+ 
+ 		switch(PhyMode)
+@@ -12786,8 +12784,8 @@ INT	Show_MbssInfo_Display_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	}
+ 
+ 	if (mod_str)
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s\n", mod_str));
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s\n", mod_str));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\n"));
+ 
+ 	return TRUE;
+ } /* End of Show_MbssInfo_Display_Proc */
+@@ -14178,12 +14176,12 @@ INT set_queue_rsv_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	if (value != 0)
+ 	{
+ 		pAd->bQueueRsv = TRUE;	
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\033[1;32m queue rsv on \033[0m\n"));			
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\033[1;32m queue rsv on \033[0m\n"));			
+ 	}
+ 	else
+ 	{
+ 		pAd->bQueueRsv = FALSE;
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\033[1;32m queue rsv off \033[0m\n"));			
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\033[1;32m queue rsv off \033[0m\n"));			
+ 	}
+ 	
+ 	return TRUE;
+@@ -14199,12 +14197,12 @@ INT set_dump_on_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	if (value != 0)
+ 	{
+ 		pAd->bDump = TRUE;	
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\033[1;32m dump on \033[0m\n"));					
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\033[1;32m dump on \033[0m\n"));					
+ 	}
+ 	else
+ 	{
+ 		pAd->bDump = FALSE;
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\033[1;32m dump off \033[0m\n"));							
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\033[1;32m dump off \033[0m\n"));							
+ 	}
+ 	
+ 	return TRUE;
+@@ -14225,7 +14223,7 @@ INT set_rsv_cnt_clear_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	           tr_entry->high_pkt_cnt = 0;
+ 	           tr_entry->high_pkt_drop_cnt = 0;
+ 		}
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\033[1;32m clear cnts \033[0m\n"));									
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\033[1;32m clear cnts \033[0m\n"));									
+ 	}
+ 	
+ 	return TRUE;
+diff --git a/mt_wifi/embedded/ap/ap_data.c b/mt_wifi/embedded/ap/ap_data.c
+index 9dfb063..6ae11c1 100755
+--- a/mt_wifi/embedded/ap/ap_data.c
++++ b/mt_wifi/embedded/ap/ap_data.c
+@@ -46,7 +46,7 @@ INT ApAllowToSendPacket(
+ 	ASSERT (wdev->wdev_type == WDEV_TYPE_AP);
+ 
+ 	if (wdev != &pAd->ApCfg.MBSSID[wdev->func_idx].wdev) {
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s(): wdev(0x%p) not equal MBSS(0x%p), func_idx=%d\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s(): wdev(0x%p) not equal MBSS(0x%p), func_idx=%d\n",
+ 				__FUNCTION__, wdev, &pAd->ApCfg.MBSSID[wdev->func_idx].wdev, wdev->func_idx));
+ 	}
+ 
+diff --git a/mt_wifi/embedded/ap/ap_repeater.c b/mt_wifi/embedded/ap/ap_repeater.c
+index a686ba1..9a731f9 100644
+--- a/mt_wifi/embedded/ap/ap_repeater.c
++++ b/mt_wifi/embedded/ap/ap_repeater.c
+@@ -330,7 +330,7 @@ VOID RTMPRemoveRepeaterEntry(
+ 	REPEATER_CLIENT_ENTRY_MAP *pMapEntry, *pPrevMapEntry, *pProbeMapEntry;
+ 	BOOLEAN bVaild;
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (" %s.\n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (" %s.\n", __FUNCTION__));
+ 
+ 	AsicRemoveRepeaterEntry(pAd, CliIdx);
+ 
+diff --git a/mt_wifi/embedded/ap/ap_sync.c b/mt_wifi/embedded/ap/ap_sync.c
+index 691f998..4111719 100644
+--- a/mt_wifi/embedded/ap/ap_sync.c
++++ b/mt_wifi/embedded/ap/ap_sync.c
+@@ -770,7 +770,7 @@ MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s():shiang! PeerProbeReqSa
+ 		{
+ 		    MAC_TABLE_ENTRY *pEntry=NULL;
+ 
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("SYNC - Send PROBE_RSP to %02x:%02x:%02x:%02x:%02x:%02x...\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("SYNC - Send PROBE_RSP to %02x:%02x:%02x:%02x:%02x:%02x...\n",
+ 										PRINT_MAC(ProbeReqParam.Addr2)));
+ 	    
+ 			RalinkSpecificIe[5] |= 0x8;
+diff --git a/mt_wifi/embedded/ap/apcli_assoc.c b/mt_wifi/embedded/ap/apcli_assoc.c
+index c880182..25ef667 100644
+--- a/mt_wifi/embedded/ap/apcli_assoc.c
++++ b/mt_wifi/embedded/ap/apcli_assoc.c
+@@ -209,7 +209,7 @@ static VOID ApCliAssocTimeoutExt(
+ 	pAd = pRepeaterCliEntry->pAd;
+ 	ifIndex = (64 + (16*pRepeaterCliEntry->MatchApCliIdx) + pRepeaterCliEntry->MatchLinkIdx);
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (" (%s) ifIndex = %d, CliIdx = %d !!!\n",
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (" (%s) ifIndex = %d, CliIdx = %d !!!\n",
+ 					__FUNCTION__, pRepeaterCliEntry->MatchApCliIdx, pRepeaterCliEntry->MatchLinkIdx));
+ 
+ 	MlmeEnqueue(pAd, APCLI_ASSOC_STATE_MACHINE, APCLI_MT2_ASSOC_TIMEOUT, 0, NULL, ifIndex);
+diff --git a/mt_wifi/embedded/ap/apcli_auth.c b/mt_wifi/embedded/ap/apcli_auth.c
+index 9c72620..508f504 100644
+--- a/mt_wifi/embedded/ap/apcli_auth.c
++++ b/mt_wifi/embedded/ap/apcli_auth.c
+@@ -89,7 +89,7 @@ static VOID ApCliAuthTimeoutExt(
+ 	pAd = pRepeaterCliEntry->pAd;
+ 	ifIndex = (64 + (16*pRepeaterCliEntry->MatchApCliIdx) + pRepeaterCliEntry->MatchLinkIdx);
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (" (%s) ifIndex = %d, CliIdx = %d !!!\n",
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (" (%s) ifIndex = %d, CliIdx = %d !!!\n",
+ 				__FUNCTION__, pRepeaterCliEntry->MatchApCliIdx, pRepeaterCliEntry->MatchLinkIdx));
+ 
+ 
+@@ -216,7 +216,7 @@ static VOID ApCliMlmeAuthReqAction(
+ 	} 
+ 	else
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("APCLI AUTH - MlmeAuthReqAction() sanity check failed. BUG!!!!!\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("APCLI AUTH - MlmeAuthReqAction() sanity check failed. BUG!!!!!\n"));
+ 		*pCurrState = APCLI_AUTH_REQ_IDLE;
+ 	}
+ 
+diff --git a/mt_wifi/embedded/ap/apcli_ctrl.c b/mt_wifi/embedded/ap/apcli_ctrl.c
+index 42ca7c4..82bda85 100644
+--- a/mt_wifi/embedded/ap/apcli_ctrl.c
++++ b/mt_wifi/embedded/ap/apcli_ctrl.c
+@@ -425,7 +425,7 @@ static VOID ApCliTrialConnectRetryTimeoutAction(PRTMP_ADAPTER pAd, MLME_QUEUE_EL
+ 	pMacEntry = MacTableLookup(pAd,pApCliEntry->MlmeAux.Bssid);
+ 
+ 	if (pMacEntry == NULL) {
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ApCli_SYNC - %s, no CfgApCliBssid in mactable!\n", __func__));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ApCli_SYNC - %s, no CfgApCliBssid in mactable!\n", __func__));
+ 		*pCurrState = APCLI_CTRL_DISCONNECTED;
+ 		pApCliEntry->NewRootApRetryCnt++;
+ 
+@@ -860,7 +860,7 @@ static VOID ApCliCtrlProbeRspAction(
+ 		if (CliIdx != 0xFF)
+ 		{
+ 			ifIndex = (64 + 16*ifIndex + CliIdx);
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) Repeater Cli Trigger Auth Req ifIndex = %d, CliIdx = %d !!!\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) Repeater Cli Trigger Auth Req ifIndex = %d, CliIdx = %d !!!\n",
+ 							__FUNCTION__, ifIndex, CliIdx));
+ 		}
+ #endif /* MAC_REPEATER_SUPPORT */
+@@ -924,7 +924,7 @@ static VOID ApCliCtrlAuthRspAction(
+ #ifdef MAC_REPEATER_SUPPORT
+ 	if (CliIdx != 0xFF)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) Repeater Cli Receive ifIndex = %d, CliIdx = %d !!!\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) Repeater Cli Receive ifIndex = %d, CliIdx = %d !!!\n",
+ 						__FUNCTION__, ifIndex, CliIdx));
+ 
+ 		pCurrState = &pApCliEntry->RepeaterCli[CliIdx].CtrlCurrState;
+@@ -1241,7 +1241,7 @@ static VOID ApCliCtrlAssocRspAction(
+ 		CliIdx = ((ifIndex - 64) % MAX_EXT_MAC_ADDR_SIZE);
+ 		ifIndex = ((ifIndex - 64) / MAX_EXT_MAC_ADDR_SIZE);
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) Repeater Cli Receive Assoc Rsp ifIndex = %d, CliIdx = %d.\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) Repeater Cli Receive Assoc Rsp ifIndex = %d, CliIdx = %d.\n",
+ 					__FUNCTION__, ifIndex, CliIdx));
+ 		pCurrState = &pAd->ApCfg.ApCliTab[ifIndex].RepeaterCli[CliIdx].CtrlCurrState;
+ 	}
+@@ -1560,7 +1560,7 @@ static VOID ApCliCtrlDisconnectReqAction(
+ 	ifIndex = (USHORT)(Elem->Priv);
+ #endif /* MAC_REPEATER_SUPPORT */
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) 2. Before do ApCliLinkDown.\n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) 2. Before do ApCliLinkDown.\n", __FUNCTION__));
+ 	if (bValid)
+ 		ApCliLinkDown(pAd, ifIndex);
+ 
+@@ -2057,7 +2057,7 @@ static VOID ApCliCtrlTrialConnectAction(
+ 		return;
+ 	}
+ 	else {
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) channel TrialConnectTimer\n", __func__));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) channel TrialConnectTimer\n", __func__));
+ 		RTMPCancelTimer(&(pApCliEntry->TrialConnectTimer), &Cancelled);
+ 
+ 		if (pApCliEntry->TrialCh != pAd->CommonCfg.CentralChannel) {
+@@ -2069,7 +2069,7 @@ static VOID ApCliCtrlTrialConnectAction(
+ 
+ 			AsicDisableSync(pAd);//disable beacon
+ 			AsicSwitchChannel(pAd, pApCliEntry->TrialCh, TRUE);
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("(%s) set  TrialConnectTimer(%d ms)\n", __func__,TRIAL_TIMEOUT));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("(%s) set  TrialConnectTimer(%d ms)\n", __func__,TRIAL_TIMEOUT));
+ 			RTMPSetTimer(&(pApCliEntry->TrialConnectTimer), TRIAL_TIMEOUT);
+ 		}
+ 	}
+diff --git a/mt_wifi/embedded/common/action.c b/mt_wifi/embedded/common/action.c
+index b5efad9..15a5c88 100644
+--- a/mt_wifi/embedded/common/action.c
++++ b/mt_wifi/embedded/common/action.c
+@@ -510,7 +510,7 @@ VOID SendBSS2040CoexistMgmtAction(
+ 	MiniportMMRequest(pAd, QID_AC_BE, pOutBuffer, FrameLen);
+ 	MlmeFreeMemory(pAd, pOutBuffer);
+ 	
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("ACT - SendBSS2040CoexistMgmtAction(BSSCoexist2040=0x%x)\n", BssCoexistInfo.BssCoexistIe.word));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("ACT - SendBSS2040CoexistMgmtAction(BSSCoexist2040=0x%x)\n", BssCoexistInfo.BssCoexistIe.word));
+ 	
+ }
+ #endif /* CONFIG_AP_SUPPORT */
+@@ -647,7 +647,7 @@ ULONG BuildIntolerantChannelRep(RTMP_ADAPTER *pAd, UCHAR *pDest)
+ 					} 
+ 					pAd->CommonCfg.TriggerEventTab.EventA[i].bValid = FALSE;
+ 				}
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("ACT - BuildIntolerantChannelRep , Total Channel number = %d \n", idx));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("ACT - BuildIntolerantChannelRep , Total Channel number = %d \n", idx));
+ 			}
+ 		}
+ 
+@@ -666,7 +666,7 @@ ULONG BuildIntolerantChannelRep(RTMP_ADAPTER *pAd, UCHAR *pDest)
+ 		
+ 	}
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("ACT-BuildIntolerantChannelRep(Size=%ld)\n", FrameLen));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("ACT-BuildIntolerantChannelRep(Size=%ld)\n", FrameLen));
+ 	hex_dump("ACT-pDestMsg", pDest, FrameLen);
+ 
+ 	return FrameLen;
+@@ -689,7 +689,7 @@ VOID Update2040CoexistFrameAndNotify(
+ {
+ 	//BSS_2040_COEXIST_IE		OldValue;
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("%s(): ACT -BSSCoexist2040 = %x. EventANo = %d. \n",
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("%s(): ACT -BSSCoexist2040 = %x. EventANo = %d. \n",
+ 				__FUNCTION__, pAd->CommonCfg.BSSCoexist2040.word,
+ 				pAd->CommonCfg.TriggerEventTab.EventANo));
+ 
+@@ -729,7 +729,7 @@ VOID Send2040CoexistAction(
+ 	NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);  /*Get an unused nonpaged memory*/
+ 	if(NStatus != NDIS_STATUS_SUCCESS) 
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("ACT - Send2040CoexistAction() allocate memory failed \n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("ACT - Send2040CoexistAction() allocate memory failed \n"));
+ 		return;
+ 	}
+ 
+diff --git a/mt_wifi/embedded/common/ba_action.c b/mt_wifi/embedded/common/ba_action.c
+index 7caa7d0..2aaf862 100644
+--- a/mt_wifi/embedded/common/ba_action.c
++++ b/mt_wifi/embedded/common/ba_action.c
+@@ -1495,7 +1495,7 @@ VOID SendSMPSAction(RTMP_ADAPTER *pAd, UCHAR Wcid, UCHAR smps)
+ 					  END_OF_ARGS);
+ 	MiniportMMRequest(pAd, QID_AC_BE, pOutBuffer, FrameLen);
+ 	MlmeFreeMemory(pAd, pOutBuffer);
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("HT - %s( %d )  \n", __FUNCTION__, Frame.smps));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("HT - %s( %d )  \n", __FUNCTION__, Frame.smps));
+ }
+ 
+ 
+diff --git a/mt_wifi/embedded/common/cmm_cfg.c b/mt_wifi/embedded/common/cmm_cfg.c
+index 99d0547..add4782 100644
+--- a/mt_wifi/embedded/common/cmm_cfg.c
++++ b/mt_wifi/embedded/common/cmm_cfg.c
+@@ -81,7 +81,7 @@ INT Set_DPD_SAVE_TEST_Proc(
+ 		memcpy(pAd->eebuf + (0x248 + group*136 + q*4), &tmp3, 2);
+ 		memcpy(pAd->eebuf + (0x248 + group*136 + q*4 + 2), &tmp4, 2);	
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, 
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, 
+ 		("mac 0x%x = %08x , flash 0x%x = %08x   mac 0x%x = %08x , flash 0x%x = %08x\n"
+ 		, (0x10920 + q*4),DPDValueWF0, (0x204 + group*136 + q*4), (tmp2<<16|tmp1)
+ 		, (0x11920 + q*4),DPDValueWF1, (0x248 + group*136 + q*4), (tmp4<<16|tmp3)));		
+@@ -103,7 +103,7 @@ INT Set_DPD_SAVE_TEST_Proc(
+ 	memcpy(pAd->eebuf + (0x288 + group*136), &tmp3, 2);
+ 	rtmp_ee_flash_write(pAd, (0x288 + group*136 + 2), tmp4); /*to truly write to flash*/
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, 
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, 
+ 		("mac 0x%x = %08x , flash 0x%x = %08x   mac 0x%x = %08x , flash 0x%x = %08x\n"
+ 		, (0x10A08),DPDValueWF0, (0x244 + group*136), (tmp2<<16|tmp1)
+ 		, (0x11A08),DPDValueWF1, (0x288 + group*136), (tmp4<<16|tmp3)));
+@@ -1205,7 +1205,7 @@ INT RTMP_COM_IoctlHandle(
+ 
+ 		case CMD_RTPRIV_IOCTL_PCI_CSR_SET:
+ 			pAd->CSRBaseAddress = (PUCHAR)Data;
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("pAd->CSRBaseAddress =0x%lx, csr_addr=0x%lx!\n", (ULONG)pAd->CSRBaseAddress, (ULONG)Data));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("pAd->CSRBaseAddress =0x%lx, csr_addr=0x%lx!\n", (ULONG)pAd->CSRBaseAddress, (ULONG)Data));
+ 			break;
+ 
+ 		case CMD_RTPRIV_IOCTL_PCIE_INIT:
+@@ -1257,7 +1257,7 @@ INT RTMP_COM_IoctlHandle(
+ 				
+ 				/* Get the current time for calculating startup time */
+ 				NdisGetSystemUpTime(&end); diff_ms = (end-start)*1000/OS_HZ;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("WiFi Startup Cost (%s): %lu.%03lus\n",
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("WiFi Startup Cost (%s): %lu.%03lus\n",
+ 						RTMP_OS_NETDEV_GET_DEVNAME(pAd->net_dev),diff_ms/1000,diff_ms%1000));
+ 			}
+ 			else
+@@ -1998,7 +1998,7 @@ INT set_get_fid(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+     while (1) {
+         for (dw_idx = 0; dw_idx < 8; dw_idx++) {
+             RTMP_IO_READ32(pAd, ((MT_PCI_REMAP_ADDR_1 + (((value & 0x0fff0000) >> 16) * 128)) + (dw_idx * 4)), (UINT32 *)&dw_content);//get head FID.
+-            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("pkt:%d, fid:%x, dw_idx = %d, dw_content = 0x%x\n", loop, ((value & 0x0fff0000) >> 16), dw_idx, dw_content));
++            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("pkt:%d, fid:%x, dw_idx = %d, dw_content = 0x%x\n", loop, ((value & 0x0fff0000) >> 16), dw_idx, dw_content));
+         }
+         RTMP_IO_WRITE32(pAd, 0x8028, value);
+         RTMP_IO_READ32(pAd, 0x8028, (UINT32 *)&next_fid_addr);//get next FID.
+@@ -2916,7 +2916,7 @@ INT ed_status_read(RTMP_ADAPTER *pAd)
+ 				
+ 		if(pAd->ed_debug)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("@@@ %s: pAd->ed_trigger_cnt=%d,	pAd->ed_silent_cnt=%u, percent=%d !!\n", 
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("@@@ %s: pAd->ed_trigger_cnt=%d,	pAd->ed_silent_cnt=%u, percent=%d !!\n", 
+ 				__FUNCTION__, pAd->ed_trigger_cnt, pAd->ed_silent_cnt
+ 			,  percent));
+ 		}
+diff --git a/mt_wifi/embedded/common/cmm_data.c b/mt_wifi/embedded/common/cmm_data.c
+index 49d4142..9991669 100755
+--- a/mt_wifi/embedded/common/cmm_data.c
++++ b/mt_wifi/embedded/common/cmm_data.c
+@@ -3796,16 +3796,16 @@ MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s():failed for VLAN_ID(vla
+ 							pCliHwAddr = (bootpHdr+28);
+ 
+ 							if (*(dhcp_msg_type) == 2)
+-								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("@@@ %s() DHCP OFFER to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));
++								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("@@@ %s() DHCP OFFER to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));
+ 
+ 							if (*(dhcp_msg_type) == 5)
+-								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("@@@ %s() DHCP ACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));								
++								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("@@@ %s() DHCP ACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));								
+ 
+ 							if (*(dhcp_msg_type) == 6)
+-								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("@@@ %s() DHCP NACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));								
++								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("@@@ %s() DHCP NACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));								
+ 
+ 							if (*(dhcp_msg_type) == 8)
+-								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("@@@ %s() DHCP INFORM to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));								
++								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("@@@ %s() DHCP INFORM to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));								
+ 						}
+ #endif /* DATA_QUEUE_RESERVE */
+ 
+diff --git a/mt_wifi/embedded/common/cmm_dfs.c b/mt_wifi/embedded/common/cmm_dfs.c
+index 3cb515e..f01a247 100644
+--- a/mt_wifi/embedded/common/cmm_dfs.c
++++ b/mt_wifi/embedded/common/cmm_dfs.c
+@@ -771,7 +771,7 @@ INT	Show_BlockCh_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	{
+ 		if (pAd->ChannelList[i].RemainingTimeForUse != 0)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Ch%d: RemainingTimeForUse:%d sec;\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Ch%d: RemainingTimeForUse:%d sec;\n",
+ 				pAd->ChannelList[i].Channel, pAd->ChannelList[i].RemainingTimeForUse));
+ 		}
+ 	}
+diff --git a/mt_wifi/embedded/common/cmm_info.c b/mt_wifi/embedded/common/cmm_info.c
+index 3754968..c8fd345 100755
+--- a/mt_wifi/embedded/common/cmm_info.c
++++ b/mt_wifi/embedded/common/cmm_info.c
+@@ -1173,10 +1173,10 @@ INT Set_ChannelListShow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 			{
+ 				unsigned int i;
+ 
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Total configured channel count is %u\n", pAd->ChannelListNum));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Total configured channel count is %u\n", pAd->ChannelListNum));
+ 				for (i = 0; i < pAd->ChannelListNum; i++)
+ 				{
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, 
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, 
+ 							 ("%3u: Channel - %3u Flags - 0x%08x\n", i, pAd->ChannelList[i].Channel, pAd->ChannelList[i].Flags));
+ 				}
+ 			}
+@@ -1189,9 +1189,9 @@ INT Set_ChannelListShow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 	NdisMoveMemory(CountryCode, pAd->CommonCfg.CountryCode, 2);
+ 	if (pAd->CommonCfg.DfsType == MAX_RD_REGION)
+ 		pAd->CommonCfg.DfsType = pChRegion->DfsType;
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("=========================================\n"));
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CountryCode:%s\n", CountryCode));
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("DfsType:%s\n",
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("=========================================\n"));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CountryCode:%s\n", CountryCode));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("DfsType:%s\n",
+ 					(pAd->CommonCfg.DfsType == JAP) ? "JAP" :
+ 					((pAd->CommonCfg.DfsType == FCC) ? "FCC" : "CE" )));
+ 
+@@ -1200,7 +1200,7 @@ INT Set_ChannelListShow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 		PCH_DESP pChDesp = (PCH_DESP) pAd->CommonCfg.pChDesp;
+ 		for (EntryIdx = 0; pChDesp[EntryIdx].FirstChannel != 0; EntryIdx++)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%u. {%3u, %2u, %2u, %s, %5s}.\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%u. {%3u, %2u, %2u, %s, %5s}.\n",
+ 						EntryIdx,
+ 						pChDesp[EntryIdx].FirstChannel,
+ 						pChDesp[EntryIdx].NumOfCh,
+@@ -1214,7 +1214,7 @@ INT Set_ChannelListShow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Default channel list table:\n"));
+ 		for (EntryIdx = 0; pChRegion->pChDesp[EntryIdx].FirstChannel != 0; EntryIdx++)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%u. {%3u, %2u, %2u, %s, %5s}.\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%u. {%3u, %2u, %2u, %s, %5s}.\n",
+ 						EntryIdx,
+ 						pChRegion->pChDesp[EntryIdx].FirstChannel,
+ 						pChRegion->pChDesp[EntryIdx].NumOfCh,
+@@ -1223,7 +1223,7 @@ INT Set_ChannelListShow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 						(pChRegion->pChDesp[EntryIdx].DfsReq == TRUE) ? "TRUE" : "FALSE"));
+ 		}
+ 	}
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("=========================================\n"));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("=========================================\n"));
+ 	return TRUE;
+ }
+ 
+@@ -6100,7 +6100,7 @@ INT Show_PSTable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ {
+ 	UINT32 ent_type = ENTRY_CLIENT;
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s(): arg=%s\n", __FUNCTION__, (arg == NULL ? "" : arg)));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s(): arg=%s\n", __FUNCTION__, (arg == NULL ? "" : arg)));
+ 	if (arg && strlen(arg)) {
+ 		if (rtstrcasecmp(arg, "sta") == TRUE)
+ 			ent_type = ENTRY_CLIENT;
+@@ -7349,43 +7349,43 @@ INT show_trinfo_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 
+ 		RTMP_IRQ_UNLOCK(&pAd->irq_lock, irq_flags);
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("TxRing Configuration\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("TxRing Configuration\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
+ 		for (idx = 0; idx < NUM_OF_TX_RING; idx++) {
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
+ 						idx, pAd->TxRing[idx].hw_desc_base, tbase[idx], tcnt[idx], tcidx[idx], tdidx[idx]));
+ 		}
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nRxRing Configuration\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nRxRing Configuration\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
+ 		for (idx = 0; idx < NUM_OF_RX_RING; idx++) {
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
+ 						idx, pAd->RxRing[idx].hw_desc_base, rbase[idx], rcnt[idx], rcidx[idx], rdidx[idx]));
+ 		}
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nMgmtRing Configuration\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nMgmtRing Configuration\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
+ 									0, pAd->MgmtRing.hw_desc_base, mbase[0], mcnt[0], mcidx[0], mdidx[0]));
+ 
+ #ifdef CONFIG_ANDES_SUPPORT
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nCtrlRing Configuration\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nCtrlRing Configuration\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
+ 									0, pAd->CtrlRing.hw_desc_base, mbase[1], mcnt[1], mcidx[1], mdidx[1]));
+ #endif /* CONFIG_ANDES_SUPPORT */
+ 
+ #ifdef MT_MAC
+ 		if (pAd->chipCap.hif_type == HIF_MT)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nBcnRing Configuration\n"));
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nBcnRing Configuration\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
+ 									0, pAd->BcnRing.hw_desc_base, mbase[2], mcnt[2], mcidx[2], mdidx[2]));
+ 
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nBMCRing Configuration\n"));
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nBMCRing Configuration\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tRingIdx Reg \tBase \t\tCnt \tCIDX \tDIDX\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t%d \t0x%04x \t0x%08x \t0x%x \t0x%x \t0x%x\n",
+ 								0, pAd->TxBmcRing.hw_desc_base, mbase[3], mcnt[3], mcidx[3], mdidx[3]));
+ 		}
+ #endif /* MT_MAC */
+@@ -7404,15 +7404,15 @@ INT show_trinfo_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 		}
+ #endif /* RLT_MAC */
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Interrupt Configuration\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tIntCSR \tIntMask \tDelayINT\n"));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\t0x%x \t0x%x \t0x%x\n", sys_ctrl[0], sys_ctrl[1], sys_ctrl[2]));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("DMA Configuration(0x%x)\n", sys_ctrl[3]));
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tTx/RxDMAEn=%d/%d, \tTx/RxDMABusy=%d/%d\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Interrupt Configuration\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tIntCSR \tIntMask \tDelayINT\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\t0x%x \t0x%x \t0x%x\n", sys_ctrl[0], sys_ctrl[1], sys_ctrl[2]));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("DMA Configuration(0x%x)\n", sys_ctrl[3]));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tTx/RxDMAEn=%d/%d, \tTx/RxDMABusy=%d/%d\n",
+ 									sys_ctrl[3] & 0x1, sys_ctrl[3] & 0x4,
+ 									sys_ctrl[3] & 0x2, sys_ctrl[3] & 0x8));
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\n"));
+ 	}
+ #endif /* defined(RTMP_PCI_SUPPORT) || defined(RTMP_RBUS_SUPPORT) */
+ 
+@@ -7888,7 +7888,7 @@ INT Set_MonitorMode_Proc(RTMP_ADAPTER *pAd,RTMP_STRING *arg)
+ 	if(pAd->monitor_ctrl.CurrentMonitorMode > MONITOR_MODE_FULL || pAd->monitor_ctrl.CurrentMonitorMode < MONITOR_MODE_OFF)
+ 		pAd->monitor_ctrl.CurrentMonitorMode = MONITOR_MODE_OFF;
+ 		
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,
+ 			("set Current Monitor Mode = %d , range(%d ~ %d)\n"
+ 			, pAd->monitor_ctrl.CurrentMonitorMode,MONITOR_MODE_OFF,MONITOR_MODE_FULL));
+ 
+diff --git a/mt_wifi/embedded/common/cmm_mac_pci.c b/mt_wifi/embedded/common/cmm_mac_pci.c
+index 0230da1..956bca9 100644
+--- a/mt_wifi/embedded/common/cmm_mac_pci.c
++++ b/mt_wifi/embedded/common/cmm_mac_pci.c
+@@ -2489,18 +2489,18 @@ VOID PSEResetAndRecovery(RTMP_ADAPTER *pAd)
+ 			UINT32 RestoreValue;
+ 
+ 			{
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: START ============== PSE CR dump ===================\n", __FUNCTION__));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: START ============== PSE CR dump ===================\n", __FUNCTION__));
+ 
+ 				RTMP_IO_READ32(pAd, 0x816c, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("mac [0x816c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("mac [0x816c] = 0x%08x\n", Value));
+ 				RTMP_IO_READ32(pAd, 0x8170, &Value);				
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("mac [0x8170] = 0x%08x\n", Value));				
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("mac [0x8170] = 0x%08x\n", Value));				
+ 
+ 				RTMP_IO_READ32(pAd, MCU_PCIE_REMAP_2, &RestoreValue);
+ 				RemapBase = GET_REMAP_2_BASE(0x800c0070) << 19;
+ 				RemapOffset = GET_REMAP_2_OFFSET(0x800c0070);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 3 : mac [0x800c0070] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 3 : mac [0x800c0070] = 0x%08x\n", Value));
+ 
+ 				//RTMP_IO_READ32(pAd, MCU_PCIE_REMAP_2, &RestoreValue);
+ 				RemapBase = GET_REMAP_2_BASE(0x800c006c) << 19;
+@@ -2510,55 +2510,55 @@ VOID PSEResetAndRecovery(RTMP_ADAPTER *pAd)
+ 				// write 3
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 3);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 3 : mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 3 : mac [0x800c006c] = 0x%08x\n", Value));
+ 				
+ 				// write 4
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 4);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 4 : mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 4 : mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write 5
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 5);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 5 : mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 5 : mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write 6
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 6);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 6 :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 6 :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write 7
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 7);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 7 :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 7 :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write 8
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 8);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 8 :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 8 :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write 9
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 9);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw 9 :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw 9 :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write a
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 0xa);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw a :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw a :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write b
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 0xb);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw b :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw b :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				// write c
+ 				RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, 0xc);
+ 				RTMP_IO_READ32(pAd, 0x80000 + RemapOffset, &Value);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("rw c :mac [0x800c006c] = 0x%08x\n", Value));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("rw c :mac [0x800c006c] = 0x%08x\n", Value));
+ 
+ 				RTMP_IO_WRITE32(pAd, MCU_PCIE_REMAP_2, RestoreValue);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: END ============== PSE CR dump ===================\n", __FUNCTION__));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: END ============== PSE CR dump ===================\n", __FUNCTION__));
+ 				
+ 			}
+ 		}
+diff --git a/mt_wifi/embedded/common/cmm_profile.c b/mt_wifi/embedded/common/cmm_profile.c
+index d8ef47c..54221b3 100644
+--- a/mt_wifi/embedded/common/cmm_profile.c
++++ b/mt_wifi/embedded/common/cmm_profile.c
+@@ -1087,7 +1087,7 @@ static void rtmp_read_ap_client_from_file(
+ 
+ 			pApCliEntry->wdev.UapsdInfo.bAPSDCapable = \
+ 									(UCHAR) simple_strtol(macptr, 0, 10);
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ApCliAPSDCapable[%d]=%d\n", i,
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ApCliAPSDCapable[%d]=%d\n", i,
+ 					pApCliEntry->wdev.UapsdInfo.bAPSDCapable));
+ 	    }
+ 	}
+@@ -1374,7 +1374,7 @@ static void rtmp_read_ap_wmm_parms_from_file(RTMP_ADAPTER *pAd, RTMP_STRING *tmp
+ 			{
+ 				pAd->ApCfg.MBSSID[i].wdev.UapsdInfo.bAPSDCapable = \
+ 										(UCHAR) simple_strtol(macptr, 0, 10);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("APSDCapable[%d]=%d\n", i,
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("APSDCapable[%d]=%d\n", i,
+ 						pAd->ApCfg.MBSSID[i].wdev.UapsdInfo.bAPSDCapable));
+ 			}
+ 	    }
+@@ -1389,7 +1389,7 @@ static void rtmp_read_ap_wmm_parms_from_file(RTMP_ADAPTER *pAd, RTMP_STRING *tmp
+ 			{
+ 				pAd->ApCfg.MBSSID[i].wdev.UapsdInfo.bAPSDCapable =
+ 							pAd->ApCfg.MBSSID[0].wdev.UapsdInfo.bAPSDCapable;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("APSDCapable[%d]=%d\n", i,
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("APSDCapable[%d]=%d\n", i,
+ 						pAd->ApCfg.MBSSID[i].wdev.UapsdInfo.bAPSDCapable));
+ 			}
+ 		}
+@@ -1407,7 +1407,7 @@ static void rtmp_read_ap_wmm_parms_from_file(RTMP_ADAPTER *pAd, RTMP_STRING *tmp
+ 			{
+ 				pAd->ApCfg.ApCliTab[i].wdev.UapsdInfo.bAPSDCapable = \
+ 								pAd->ApCfg.MBSSID[0].wdev.UapsdInfo.bAPSDCapable;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("default ApCliAPSDCapable[%d]=%d\n",
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("default ApCliAPSDCapable[%d]=%d\n",
+ 						i, pAd->ApCfg.ApCliTab[i].wdev.UapsdInfo.bAPSDCapable));
+ 			}
+ 		}
+@@ -4340,7 +4340,7 @@ NDIS_STATUS	RTMPSetProfileParameters(
+ 					else
+ 						pAd->ApCfg.EntryLifeCheck = MAC_ENTRY_LIFE_CHECK_CNT;
+ 
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("EntryLifeCheck=%ld\n", pAd->ApCfg.EntryLifeCheck));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("EntryLifeCheck=%ld\n", pAd->ApCfg.EntryLifeCheck));
+ 				}
+ 
+ #endif /* CONFIG_AP_SUPPORT */
+diff --git a/mt_wifi/embedded/common/cmm_rf_cal.c b/mt_wifi/embedded/common/cmm_rf_cal.c
+index 70881df..e044633 100644
+--- a/mt_wifi/embedded/common/cmm_rf_cal.c
++++ b/mt_wifi/embedded/common/cmm_rf_cal.c
+@@ -225,7 +225,7 @@ VOID R_Calibration(
+ 	else
+ 		R_Cal_Code = (UCHAR)RCalCode;
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("D1 = %d, D2 = %d, CalCode = %d !!!\n", D1, D2, RCalCode));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("D1 = %d, D2 = %d, CalCode = %d !!!\n", D1, D2, RCalCode));
+ 
+ 	RT635xWriteRFRegister(pAd, RF_BANK0, RF_R07, R_Cal_Code);
+ 
+@@ -1085,7 +1085,7 @@ UCHAR DPD_Calibration(
+ 
+ 		if (k_count == 1000)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nWait MAC Status to MAX  !!!\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nWait MAC Status to MAX  !!!\n"));
+ 		}
+ 
+ 		/* Transmit packet */
+@@ -1112,7 +1112,7 @@ UCHAR DPD_Calibration(
+ 
+ 		if (k_count == 500)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\nWait MAC Status to MAX  !!!\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\nWait MAC Status to MAX  !!!\n"));
+ 		}
+ 
+ 		/* Set BBP DPD parameters through MAC registers  */
+@@ -1200,7 +1200,7 @@ UCHAR DPD_Calibration(
+ 				
+ 				if (k_count == 10000)
+ 				{
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("2. Wait MAC Status to MAX  !!!\n"));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("2. Wait MAC Status to MAX  !!!\n"));
+ 				}
+ 
+ 				/* Turn on debug tone and start DPD calibration through MAC registers */
+@@ -1248,7 +1248,7 @@ UCHAR DPD_Calibration(
+ 				}
+ 
+ 				if (k_count == 1000)
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Wait capture buffer to MAX  !!!\n"));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Wait capture buffer to MAX  !!!\n"));
+ 
+ 				/* Turn off debug tone */
+ 				RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R244, 0x00);
+@@ -2140,7 +2140,7 @@ BOOLEAN BW_Filter_Calibration(
+ 	UINT8 saveBBP159R0, saveBBP159R2, saveBBPR23;
+ 	UINT32 MAC_RF_CONTROL0, MAC_RF_BYPASS0;
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (" %s BW Filter Calibration !!!\n", (bTxCal == TRUE ? "TX" : "RX")));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (" %s BW Filter Calibration !!!\n", (bTxCal == TRUE ? "TX" : "RX")));
+ 
+ 	/* Save MAC registers */
+ 	RTMP_IO_READ32(pAd, RF_CONTROL0, &MAC_RF_CONTROL0);
+@@ -2561,7 +2561,7 @@ VOID RXIQ_Calibration(
+ 
+ 	if (k_count == 10000)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Wait MAC Status to MAX  !!!\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Wait MAC Status to MAX  !!!\n"));
+ 	}
+ 	
+ 	bbpval = BBP4 & (~0x18);
+diff --git a/mt_wifi/embedded/common/cmm_sanity.c b/mt_wifi/embedded/common/cmm_sanity.c
+index d32ee21..2466455 100644
+--- a/mt_wifi/embedded/common/cmm_sanity.c
++++ b/mt_wifi/embedded/common/cmm_sanity.c
+@@ -721,7 +721,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
+ 							else /* ((PeerWscIeLen +(pEid->Len - 4)) > 512) */
+ 							{
+ 								bWscCheck = FALSE;
+-								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: Error!!! Sum of All PeerWscIeLen = %d (> 512)\n", __FUNCTION__, (PeerWscIeLen +(pEid->Len - 4))));
++								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: Error!!! Sum of All PeerWscIeLen = %d (> 512)\n", __FUNCTION__, (PeerWscIeLen +(pEid->Len - 4))));
+ 							}
+ 						}
+ 					}
+@@ -1367,7 +1367,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
+ 					else /* ((PeerWscIeLen +(pEid->Len - 4)) > 512) */
+ 					{
+ 						bWscCheck = FALSE;
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: Error!!! Sum of All PeerWscIeLen = %d (> 512)\n", __FUNCTION__, (PeerWscIeLen +(pEid->Len - 4))));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: Error!!! Sum of All PeerWscIeLen = %d (> 512)\n", __FUNCTION__, (PeerWscIeLen +(pEid->Len - 4))));
+ 					}
+ 				}
+ 				else
+@@ -2421,7 +2421,7 @@ BOOLEAN PeerProbeReqSanity(
+ 							else /* ((PeerWscIeLen +(eid_len-4)) > 512) */
+ 							{
+ 								bWscCheck = FALSE;
+-								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: Error!Sum of All PeerWscIeLen = %d (> 512)\n",
++								MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: Error!Sum of All PeerWscIeLen = %d (> 512)\n",
+ 											__FUNCTION__, (PeerWscIeLen +(eid_len-4))));
+ 							}
+ 						}
+@@ -2429,7 +2429,7 @@ BOOLEAN PeerProbeReqSanity(
+ 					else
+ 					{
+ 						bWscCheck = FALSE;
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: Error!!! pPeerWscIe is empty!\n", __FUNCTION__));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: Error!!! pPeerWscIe is empty!\n", __FUNCTION__));
+ 					}
+ #endif /* CONFIG_AP_SUPPORT */
+ #endif /* WSC_INCLUDED */
+diff --git a/mt_wifi/embedded/common/cmm_usb_io.c b/mt_wifi/embedded/common/cmm_usb_io.c
+index a78bb74..0a5582d 100644
+--- a/mt_wifi/embedded/common/cmm_usb_io.c
++++ b/mt_wifi/embedded/common/cmm_usb_io.c
+@@ -285,7 +285,7 @@ NTSTATUS CheckGPIOHdlr(RTMP_ADAPTER *pAd, PCmdQElmt CMDQelmt)
+ 			if (pAd->StaCfg.bRadio != (pAd->StaCfg.bHwRadio && pAd->StaCfg.bSwRadio))
+ 			{
+ 				pAd->StaCfg.bRadio = (pAd->StaCfg.bHwRadio && pAd->StaCfg.bSwRadio);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("!!! Radio %s !!!\n",
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("!!! Radio %s !!!\n",
+ 								(pAd->StaCfg.bRadio == TRUE ? "On" : "Off")));
+ 				if (pAd->StaCfg.bRadio == TRUE)
+ 				{
+@@ -401,7 +401,7 @@ static NTSTATUS ResetBulkOutHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
+ 						pAd->watchDogTxPendingCnt[pAd->bulkResetPipeid] = 0;
+ 						RTMP_INT_UNLOCK(&pAd->BulkOutLock[pAd->bulkResetPipeid], IrqFlags);
+ 
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CMDTHREAD_RESET_BULK_OUT:Submit Tx URB failed %d\n", ret));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CMDTHREAD_RESET_BULK_OUT:Submit Tx URB failed %d\n", ret));
+ 				}
+ 				else
+ 				{
+@@ -427,7 +427,7 @@ static NTSTATUS ResetBulkOutHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
+ 			/*NdisReleaseSpinLock(&pAd->BulkOutLock[pAd->bulkResetPipeid]);*/
+ 			/*RTMP_INT_UNLOCK(&pAd->BulkOutLock[pAd->bulkResetPipeid], IrqFlags);*/
+ 
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CmdThread : TX DATA RECOVER FAIL for BulkReq(0x%lx) because BulkOutPending[%d] is TRUE!\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CmdThread : TX DATA RECOVER FAIL for BulkReq(0x%lx) because BulkOutPending[%d] is TRUE!\n",
+ 								pAd->bulkResetReq[pAd->bulkResetPipeid], pAd->bulkResetPipeid));
+ 
+ 			if (pAd->bulkResetPipeid == 0)
+@@ -449,7 +449,7 @@ static NTSTATUS ResetBulkOutHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
+ 				else
+ 					pendingContext = 0;
+ 
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\tTX Occupied by %d!\n", pendingContext));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\tTX Occupied by %d!\n", pendingContext));
+ 			}
+ 
+ 			/* no matter what, clean the flag*/
+@@ -499,7 +499,7 @@ static NTSTATUS ResetBulkInHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
+ 		/*while ((atomic_read(&pAd->PendingRx) > 0) && (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST))) */
+ 		if((pAd->PendingRx > 0) && (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("BulkIn IRP Pending!!!\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("BulkIn IRP Pending!!!\n"));
+ 			RTUSBCancelPendingBulkInIRP(pAd);
+ 			RtmpusecDelay(100000);
+ 			pAd->PendingRx = 0;
+diff --git a/mt_wifi/embedded/common/cmm_wpa.c b/mt_wifi/embedded/common/cmm_wpa.c
+index b406c73..52291d2 100755
+--- a/mt_wifi/embedded/common/cmm_wpa.c
++++ b/mt_wifi/embedded/common/cmm_wpa.c
+@@ -3393,7 +3393,7 @@ static VOID RTMPMakeRsnIeCap(
+ #ifdef DOT11W_PMF_SUPPORT
+                         pRSN_Cap->field.MFPC = (pMbss->PmfCfg.MFPC) ? 1 : 0;
+                         pRSN_Cap->field.MFPR = (pMbss->PmfCfg.MFPR) ? 1 : 0;
+-                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s: RSNIE Capability MFPC=%d, MFPR=%d\n", __FUNCTION__, pRSN_Cap->field.MFPC, pRSN_Cap->field.MFPR));
++                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s: RSNIE Capability MFPC=%d, MFPR=%d\n", __FUNCTION__, pRSN_Cap->field.MFPC, pRSN_Cap->field.MFPR));
+ #endif /* DOT11W_PMF_SUPPORT */
+ 		}
+ 	}
+@@ -3405,7 +3405,7 @@ static VOID RTMPMakeRsnIeCap(
+ 	{
+                 pRSN_Cap->field.MFPC = (pAd->StaCfg.PmfCfg.MFPC) ? 1 : 0;
+ 		pRSN_Cap->field.MFPR = (pAd->StaCfg.PmfCfg.MFPR) ? 1 : 0;
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s: RSNIE Capability MFPC=%d, MFPR=%d\n", __FUNCTION__, pRSN_Cap->field.MFPC, pRSN_Cap->field.MFPR));
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s: RSNIE Capability MFPC=%d, MFPR=%d\n", __FUNCTION__, pRSN_Cap->field.MFPC, pRSN_Cap->field.MFPR));
+ 	}
+ #endif /* DOT11W_PMF_SUPPORT */
+ 
+diff --git a/mt_wifi/embedded/common/ee_efuse.c b/mt_wifi/embedded/common/ee_efuse.c
+index b22728f..8ec94f0 100644
+--- a/mt_wifi/embedded/common/ee_efuse.c
++++ b/mt_wifi/embedded/common/ee_efuse.c
+@@ -1236,7 +1236,7 @@ INT eFuse_init(RTMP_ADAPTER *pAd)
+ 
+ 	/*RT3572 means 3062/3562/3572*/
+ 	/*3593 means 3593*/
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("NVM is Efuse and its size =%x[%x-%x] \n",pAd->chipCap.EFUSE_USAGE_MAP_SIZE,pAd->chipCap.EFUSE_USAGE_MAP_START,pAd->chipCap.EFUSE_USAGE_MAP_END));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("NVM is Efuse and its size =%x[%x-%x] \n",pAd->chipCap.EFUSE_USAGE_MAP_SIZE,pAd->chipCap.EFUSE_USAGE_MAP_START,pAd->chipCap.EFUSE_USAGE_MAP_END));
+ 	eFuseGetFreeBlockCount(pAd, &EfuseFreeBlock);
+ 	/*If the used block of efuse is less than 5. We assume the default value*/
+ 	/* of this efuse is empty and change to the buffer mode in odrder to */
+diff --git a/mt_wifi/embedded/common/mt_ps.c b/mt_wifi/embedded/common/mt_ps.c
+index 0e4cf0c..5fbb556 100644
+--- a/mt_wifi/embedded/common/mt_ps.c
++++ b/mt_wifi/embedded/common/mt_ps.c
+@@ -478,14 +478,14 @@ BOOLEAN MtPsIndicate(RTMP_ADAPTER *pAd, UCHAR *pAddr, UCHAR wcid, UCHAR Psm)
+ 				} else {
+ 					INT idx;
+ 					tr_entry->ps_state = APPS_RETRIEVE_DONE;
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("%s: ERROR!! ps_fifo_swq->deqIdx=%d, ps_fifo_swq->enqIdx=%d\n", __FUNCTION__,ps_fifo_swq->deqIdx,ps_fifo_swq->enqIdx));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("%s: ERROR!! ps_fifo_swq->deqIdx=%d, ps_fifo_swq->enqIdx=%d\n", __FUNCTION__,ps_fifo_swq->deqIdx,ps_fifo_swq->enqIdx));
+ 					for (idx =0; idx < TX_SWQ_FIFO_LEN;idx++)
+ 					{
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, (",[%d] =%d\n", idx, ps_fifo_swq->swq[idx]));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, (",[%d] =%d\n", idx, ps_fifo_swq->swq[idx]));
+ 						if ((idx % 16) == 0)
+-							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("\n"));
++							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("\n"));
+ 					}
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("\n"));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("\n"));
+ 				}				
+ 			}
+ #else /* !MT7603 && MT7628 */
+@@ -528,7 +528,7 @@ VOID MtPsRedirectDisableCheck(
+ 	if (pfgForce)
+ 	{
+ 		wlan_idx = (UINT32)wcid;
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("%s(%d): [wlan_idx=0x%x] PS Redirect mode(pfgForce = %d) is enabled. Send PC Clear command to FW.\n", 
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("%s(%d): [wlan_idx=0x%x] PS Redirect mode(pfgForce = %d) is enabled. Send PC Clear command to FW.\n", 
+ 			__FUNCTION__, __LINE__, wlan_idx, pfgForce));
+ 
+ 		MtClearPseRdTab(pAd, wlan_idx);
+@@ -553,7 +553,7 @@ VOID MtPsSendToken(
+ 		return;
+ 	}
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("%s(wcid=%d): Driver didn't receive PsRetrieveStartRsp from FW.\n",__FUNCTION__, WlanIdx));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("%s(wcid=%d): Driver didn't receive PsRetrieveStartRsp from FW.\n",__FUNCTION__, WlanIdx));
+ 	pEntry = &pAd->MacTab.Content[WlanIdx];
+ 	
+ 	tr_entry = &pAd->MacTab.tr_entry[WlanIdx];
+@@ -592,7 +592,7 @@ VOID MtPsSendToken(
+ 		if (!token_status)
+ 			tr_entry->ps_qbitmap |= (1 << q_idx);
+ 		else
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("%s(%d) Fail:  Send TOKEN Frame, AC=%d\n", __FUNCTION__, __LINE__, q_idx));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("%s(%d) Fail:  Send TOKEN Frame, AC=%d\n", __FUNCTION__, __LINE__, q_idx));
+ 	}
+ 
+ 	if (tr_entry->ps_qbitmap == 0)
+diff --git a/mt_wifi/embedded/common/multi_channel.c b/mt_wifi/embedded/common/multi_channel.c
+index bf6c0d9..002a12d 100644
+--- a/mt_wifi/embedded/common/multi_channel.c
++++ b/mt_wifi/embedded/common/multi_channel.c
+@@ -13,7 +13,7 @@ VOID Start_MCC(RTMP_ADAPTER *pAd)
+ 	ULONG	temp;
+ 	// 0 :STA , 1 : AP, 2 : GC, 3 : GO 
+ 	INT role=2; //means GC role
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("start mcc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("start mcc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"));
+ 	/*because Start_time will channel channel 2to channel 1 , we put GO in Channel 2*/
+ 	pAd->Mlme.bStartMcc = TRUE;
+ 
+@@ -64,18 +64,18 @@ VOID Start_MCC(RTMP_ADAPTER *pAd)
+ 
+ 
+ 	AsicGetTsfTime(pAd, &Highpart, &Lowpart);
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("!!!!Current Tsf LSB = = %ld \n",  Lowpart));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("!!!!Current Tsf LSB = = %ld \n",  Lowpart));
+ 
+  	RTMP_IO_READ32(pAd, LPON_T1STR, &temp);
+ 	temp = temp & 0x0000FFFF;  		
+ 	NextTbtt	= temp % pAd->CommonCfg.BeaconPeriod; 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("!!!!NextTbtt =  %ld  \n", NextTbtt));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("!!!!NextTbtt =  %ld  \n", NextTbtt));
+ 
+ 	temp = NextTbtt*1024+Lowpart;
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("!!!!Tsf LSB + TimeTillTbtt= %ld \n", temp));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("!!!!Tsf LSB + TimeTillTbtt= %ld \n", temp));
+ 
+ 	pAd->cfg80211_ctrl.GONoASchedule.StartTime = Lowpart + NextTbtt*1024+ 204800 + (pAd->Mlme.channel_2nd_staytime*512);
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" pAd->GONoASchedule.StartTime = %ld \n", pAd->cfg80211_ctrl.GONoASchedule.StartTime));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" pAd->GONoASchedule.StartTime = %ld \n", pAd->cfg80211_ctrl.GONoASchedule.StartTime));
+ 	pAd->cfg80211_ctrl.GONoASchedule.Duration= (pAd->Mlme.channel_1st_staytime + pAd->Mlme.switch_idle_time) *1024;
+ 	pAd->cfg80211_ctrl.GONoASchedule.Interval=  ((pAd->Mlme.channel_2nd_staytime + pAd->Mlme.switch_idle_time) *1024) + (pAd->cfg80211_ctrl.GONoASchedule.Duration);
+ 
+diff --git a/mt_wifi/embedded/common/pmf.c b/mt_wifi/embedded/common/pmf.c
+index 92cae13..ae2674b 100644
+--- a/mt_wifi/embedded/common/pmf.c
++++ b/mt_wifi/embedded/common/pmf.c
+@@ -151,7 +151,7 @@ VOID PMF_MlmeSAQueryReq(
+                 MiniportMMRequest(pAd, QID_MGMT, pOutBuffer, FrameLen);
+                 os_free_mem(NULL, pOutBuffer);
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s - Send SA Query Request to STA(%02x:%02x:%02x:%02x:%02x:%02x)\n",
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s - Send SA Query Request to STA(%02x:%02x:%02x:%02x:%02x:%02x)\n",
+ 								__FUNCTION__, PRINT_MAC(pEntry->Addr)));                
+         }        
+ }
+@@ -175,7 +175,7 @@ VOID PMF_PeerSAQueryReqAction(
+                 //UINT ccmp_len = LEN_CCMP_HDR + LEN_CCMP_MIC;
+                 //UCHAR ccmp_buf[ccmp_len];
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s : Receive SA Query Request\n", __FUNCTION__));
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s : Receive SA Query Request\n", __FUNCTION__));
+                 pHeader = (PFRAME_802_11) Elem->Msg;
+ 
+                 pEntry = MacTableLookup(pAd, pHeader->Hdr.Addr2);
+@@ -229,7 +229,7 @@ VOID PMF_PeerSAQueryReqAction(
+                 MiniportMMRequest(pAd, QID_MGMT, pOutBuffer, FrameLen);
+                 os_free_mem(NULL, pOutBuffer);
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s - Send SA Query Response to STA(%02x:%02x:%02x:%02x:%02x:%02x)\n", __FUNCTION__, PRINT_MAC(SAQRspHdr.Addr1)));        
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s - Send SA Query Response to STA(%02x:%02x:%02x:%02x:%02x:%02x)\n", __FUNCTION__, PRINT_MAC(SAQRspHdr.Addr1)));        
+ 	}
+ }
+ 
+@@ -247,7 +247,7 @@ VOID PMF_PeerSAQueryRspAction(
+                 USHORT TransactionID;
+                 BOOLEAN Cancelled;
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s : Receive SA Query Response\n", __FUNCTION__));
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s : Receive SA Query Response\n", __FUNCTION__));
+ 
+                 pHeader = (PFRAME_802_11) Elem->Msg;
+ 				
+@@ -272,11 +272,11 @@ VOID PMF_PeerSAQueryRspAction(
+                         pEntry->SAQueryStatus = SAQ_IDLE;
+                         RTMPCancelTimer(&pEntry->SAQueryTimer, &Cancelled);
+                         RTMPCancelTimer(&pEntry->SAQueryConfirmTimer, &Cancelled);
+-                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s - Compare TransactionID correctly, STA(%02x:%02x:%02x:%02x:%02x:%02x)\n", __FUNCTION__, PRINT_MAC(pHeader->Hdr.Addr2)));        
++                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s - Compare TransactionID correctly, STA(%02x:%02x:%02x:%02x:%02x:%02x)\n", __FUNCTION__, PRINT_MAC(pHeader->Hdr.Addr2)));        
+                 } 
+                 else 
+                 {
+-                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s - Compare TransactionID wrong, STA(%02x:%02x:%02x:%02x:%02x:%02x)\n", __FUNCTION__, PRINT_MAC(pHeader->Hdr.Addr2)));
++                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s - Compare TransactionID wrong, STA(%02x:%02x:%02x:%02x:%02x:%02x)\n", __FUNCTION__, PRINT_MAC(pHeader->Hdr.Addr2)));
+                 }
+ 	}
+ }
+@@ -294,7 +294,7 @@ VOID PMF_SAQueryTimeOut(
+         {
+ 		RTMP_ADAPTER *pAd = (RTMP_ADAPTER*)pEntry->pAd;
+ 
+-   		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s - STA(%02x:%02x:%02x:%02x:%02x:%02x)\n",
++   		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s - STA(%02x:%02x:%02x:%02x:%02x:%02x)\n",
+    					__FUNCTION__, PRINT_MAC(pEntry->Addr)));
+ 
+ #ifdef CONFIG_AP_SUPPORT
+@@ -335,7 +335,7 @@ VOID PMF_SAQueryConfirmTimeOut(
+         if (pEntry)
+         {
+                 PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pEntry->pAd;
+-   			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s - STA(%02x:%02x:%02x:%02x:%02x:%02x)\n",
++   			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s - STA(%02x:%02x:%02x:%02x:%02x:%02x)\n",
+ 				__FUNCTION__, PRINT_MAC(pEntry->Addr)));
+                 pEntry->SAQueryStatus = SAQ_RETRY;
+                 PMF_MlmeSAQueryReq(pAd, pEntry);
+@@ -675,7 +675,7 @@ VOID PMF_MakeRsnIeGMgmtCipher(
+ 	{
+ 		NdisMoveMemory(pBuf, OUI_PMF_BIP_CIPHER, LEN_OUI_SUITE);
+ 		(*rsn_len) += sizeof(LEN_OUI_SUITE);
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s: Insert BIP to the group management cipher of RSNIE\n", __FUNCTION__));		
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s: Insert BIP to the group management cipher of RSNIE\n", __FUNCTION__));		
+ 	}
+ }
+ 
+@@ -708,7 +708,7 @@ NTSTATUS PMF_RsnCapableValidation(
+ 	   Refer to Table 8-1a, IEEE 802.11W to check the PMF policy */
+ 	if ((pBuf = WPA_ExtractSuiteFromRSNIE(pRsnie, rsnie_len, RSN_CAP_INFO, &count)) == NULL)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s : Peer's MPFC isn't used.\n", __FUNCTION__));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s : Peer's MPFC isn't used.\n", __FUNCTION__));
+ 		if (self_MFPR)
+ 		{
+ 			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s : PMF policy violation.\n", __FUNCTION__));
+@@ -742,7 +742,7 @@ NTSTATUS PMF_RsnCapableValidation(
+ 
+ 		if ((self_MFPC == TRUE) && (peer_MFPC == TRUE))
+ 		{
+-		        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s: PMF Connection \n", __FUNCTION__));
++		        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s: PMF Connection \n", __FUNCTION__));
+ 			CLIENT_STATUS_SET_FLAG(pEntry, fCLIENT_STATUS_PMF_CAPABLE);
+ 		}
+ 	}
+@@ -759,7 +759,7 @@ NTSTATUS PMF_RsnCapableValidation(
+                         if(RTMPEqualMemory(pBuf,OUI_WPA2_1X_SHA256,4) || RTMPEqualMemory(pBuf,OUI_WPA2_PSK_SHA256,4) )
+                         {
+                                 CLIENT_STATUS_SET_FLAG(pEntry, fCLIENT_STATUS_USE_SHA256);
+-                                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s : SHA256 Support\n", __FUNCTION__));
++                                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s : SHA256 Support\n", __FUNCTION__));
+ 			}
+                         pBuf += 4;
+                         count--;
+@@ -1575,7 +1575,7 @@ INT Set_PMFMFPC_Proc (
+                 else
+                         pAd->ApCfg.MBSSID[pObj->ioctl_if].PmfCfg.Desired_MFPC = FALSE; 
+ 
+-    		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: apidx=%d, Desired MFPC=%d\n", __FUNCTION__
++    		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: apidx=%d, Desired MFPC=%d\n", __FUNCTION__
+                 , pObj->ioctl_if, pAd->ApCfg.MBSSID[pObj->ioctl_if].PmfCfg.Desired_MFPC));
+         }
+ #endif /* CONFIG_AP_SUPPORT */
+@@ -1588,7 +1588,7 @@ INT Set_PMFMFPC_Proc (
+ 		else
+ 			pAd->StaCfg.PmfCfg.Desired_MFPC = FALSE; 
+ 
+-        	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: Desired MFPC=%d\n", __FUNCTION__
++        	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: Desired MFPC=%d\n", __FUNCTION__
+                 , pAd->StaCfg.PmfCfg.Desired_MFPC));
+ 	}
+ #endif /* CONFIG_STA_SUPPORT */
+@@ -1627,7 +1627,7 @@ INT Set_PMFMFPR_Proc (
+                 else
+                         pAd->ApCfg.MBSSID[pObj->ioctl_if].PmfCfg.Desired_MFPR = FALSE; 
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: apidx=%d, Desired MFPR=%d\n", __FUNCTION__
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: apidx=%d, Desired MFPR=%d\n", __FUNCTION__
+                 , pObj->ioctl_if, pAd->ApCfg.MBSSID[pObj->ioctl_if].PmfCfg.Desired_MFPR));
+ 	}
+ #endif /* CONFIG_AP_SUPPORT */
+@@ -1640,7 +1640,7 @@ INT Set_PMFMFPR_Proc (
+                 else
+                         pAd->StaCfg.PmfCfg.Desired_MFPR = FALSE; 
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: Desired MFPR=%d\n", __FUNCTION__
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: Desired MFPR=%d\n", __FUNCTION__
+                 , pAd->StaCfg.PmfCfg.Desired_MFPR));
+         }
+ #endif /* CONFIG_STA_SUPPORT */
+@@ -1666,7 +1666,7 @@ INT Set_PMFSHA256_Proc (
+                 else
+                         pAd->ApCfg.MBSSID[pObj->ioctl_if].PmfCfg.Desired_PMFSHA256 = FALSE; 
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: apidx=%d, Desired PMFSHA256=%d\n", __FUNCTION__
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: apidx=%d, Desired PMFSHA256=%d\n", __FUNCTION__
+                 , pObj->ioctl_if, pAd->ApCfg.MBSSID[pObj->ioctl_if].PmfCfg.Desired_PMFSHA256));
+ 	}
+ #endif /* CONFIG_AP_SUPPORT */
+@@ -1679,7 +1679,7 @@ INT Set_PMFSHA256_Proc (
+                 else
+                         pAd->StaCfg.PmfCfg.Desired_PMFSHA256 = FALSE; 
+ 
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: Desired PMFSHA256=%d\n", __FUNCTION__
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: Desired PMFSHA256=%d\n", __FUNCTION__
+                 , pAd->StaCfg.PmfCfg.Desired_PMFSHA256));
+         }
+ #endif /* CONFIG_STA_SUPPORT */
+diff --git a/mt_wifi/embedded/common/rtmp_init_inf.c b/mt_wifi/embedded/common/rtmp_init_inf.c
+index 4eeaf56..1e7fada 100755
+--- a/mt_wifi/embedded/common/rtmp_init_inf.c
++++ b/mt_wifi/embedded/common/rtmp_init_inf.c
+@@ -698,7 +698,7 @@ VOID RTMPDrvOpen(VOID *pAdSrc)
+ 			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: Security is not WPA2/WPA2PSK AES\n", __FUNCTION__));
+ 		}
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: MFPC=%d, MFPR=%d, SHA256=%d\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("[PMF]%s:: MFPC=%d, MFPR=%d, SHA256=%d\n",
+ 					__FUNCTION__, pAd->StaCfg.PmfCfg.MFPC, pAd->StaCfg.PmfCfg.MFPR,
+ 					pAd->StaCfg.PmfCfg.PMFSHA256));
+ 	}
+diff --git a/mt_wifi/embedded/common/scan.c b/mt_wifi/embedded/common/scan.c
+index 8657410..7bc800d 100644
+--- a/mt_wifi/embedded/common/scan.c
++++ b/mt_wifi/embedded/common/scan.c
+@@ -113,7 +113,7 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
+ #endif /* CONFIG_MULTI_CHANNEL */
+ #ifdef CONFIG_MULTI_CHANNEL
+ #if defined(RT_CFG80211_SUPPORT) && defined(CONFIG_AP_SUPPORT)
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("scan ch restore   ch %d  p2p_wdev->CentralChannel%d \n",ch,p2p_wdev->CentralChannel));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("scan ch restore   ch %d  p2p_wdev->CentralChannel%d \n",ch,p2p_wdev->CentralChannel));
+ /*If GO start, we need to change to GO Channel*/
+ 	if((ch != p2p_wdev->CentralChannel) && (p2p_wdev->CentralChannel != 0))
+ 		ch = p2p_wdev->CentralChannel;
+diff --git a/mt_wifi/embedded/common/wnm.c b/mt_wifi/embedded/common/wnm.c
+index cbed46b..0ef19eb 100644
+--- a/mt_wifi/embedded/common/wnm.c
++++ b/mt_wifi/embedded/common/wnm.c
+@@ -934,7 +934,7 @@ UINT32 AddIPv4ProxyARPEntry(IN PRTMP_ADAPTER pAd,
+ 	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s\n", __FUNCTION__));
+ 
+ 	if ((pTargetIPAddr[0] == 0) && (pTargetIPAddr[1] == 0)) {
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Drop invalid IP Addr:%d.%d.%d.%d\n", pTargetIPAddr[0], pTargetIPAddr[1], pTargetIPAddr[2], pTargetIPAddr[3]));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Drop invalid IP Addr:%d.%d.%d.%d\n", pTargetIPAddr[0], pTargetIPAddr[1], pTargetIPAddr[2], pTargetIPAddr[3]));
+ 		return FALSE;
+ 	}
+ 	
+@@ -1201,7 +1201,7 @@ BOOLEAN IPv4ProxyARP(IN PRTMP_ADAPTER pAd,
+             RTMP_SEM_EVENT_UP(&pWNMCtrl->ProxyARPListLock);
+             if (InTable == FALSE) {
+ 				AddIPv4ProxyARPEntry(pAd, pMbss, SourceMACAddr, SourceIPAddr);
+-                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,
++                MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,
+                 ("%s, New Station take arp request, Learning ARP Entry from it\n", __func__));
+ 			}
+ 		}
+@@ -1217,7 +1217,7 @@ BOOLEAN IPv4ProxyARP(IN PRTMP_ADAPTER pAd,
+ 		//In this case, AP shall learn the mac/ip mapping from it.
+ 			if (IPV4_ADDR_EQUAL(SourceIPAddr, ZERO_IP_ADDR) == TRUE) {
+ 				AddIPv4ProxyARPEntry(pAd, pMbss, SourceMACAddr, TargetIPAddr);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, 
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, 
+ 				("%s, New Station take DAD to detect, Learning ARP Entry from it\n", __func__));
+ 			}
+ 			else {
+@@ -1235,7 +1235,7 @@ BOOLEAN IPv4ProxyARP(IN PRTMP_ADAPTER pAd,
+ 				RTMP_SEM_EVENT_UP(&pWNMCtrl->ProxyARPListLock);
+ 				if (InTable == FALSE) {
+ 					AddIPv4ProxyARPEntry(pAd, pMbss, SourceMACAddr, SourceIPAddr);
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, 
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, 
+ 					("%s, New Station take arp request to detect, Learning ARP Entry from it\n", __func__));
+ 				}
+ 			}	
+diff --git a/mt_wifi/embedded/common/wsc.c b/mt_wifi/embedded/common/wsc.c
+index 32a11f1..4f421f1 100644
+--- a/mt_wifi/embedded/common/wsc.c
++++ b/mt_wifi/embedded/common/wsc.c
+@@ -8265,10 +8265,10 @@ BOOLEAN WscBssWpsIESearchForPBC(
+ 						ApUuidBssid[index].Band = WSC_RFBAND_50GHZ;
+ 					else
+ 						ApUuidBssid[index].Band = WSC_RFBAND_24GHZ;
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("UUID-E= "));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("UUID-E= "));
+ 					for(idx=0; idx<16; idx++)
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%02x  ", ApUuidBssid[index].Uuid[idx]));
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("\n"));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%02x  ", ApUuidBssid[index].Uuid[idx]));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("\n"));
+ 
+ 					pWscControl->WscPBCBssCount++;
+ 				}
+@@ -10951,7 +10951,7 @@ VOID WSC_HDR_BTN_CheckHandler(
+ 			pAd->CommonCfg.WscHdrPshBtnCheckCount = 0;
+ 
+ 			/* execute WSC PBC function */
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("wsc> execute WSC PBC...\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("wsc> execute WSC PBC...\n"));
+ 
+ #ifdef CONFIG_AP_SUPPORT
+ 			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
+diff --git a/mt_wifi/embedded/common/wsc_tlv.c b/mt_wifi/embedded/common/wsc_tlv.c
+index 8d7b901..558921a 100644
+--- a/mt_wifi/embedded/common/wsc_tlv.c
++++ b/mt_wifi/embedded/common/wsc_tlv.c
+@@ -311,7 +311,7 @@ static VOID	WscParseEncrSettings(
+ 	
+ 	if (RTMPEqualMemory(Hmac, Temp, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("WscParseEncrSettings --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("WscParseEncrSettings --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Temp[0])), (UINT)cpu2be32(*((PUINT) &Temp[4]))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 	}
+@@ -2685,7 +2685,7 @@ int ProcessMessageM1(
+ #ifdef WSC_NFC_SUPPORT
+ 		if (pWscControl->bTriggerByNFC)
+ 		{
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Re-generate public key for negative test!\n"));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Re-generate public key for negative test!\n"));
+ 			pWscControl->bRegenPublicKey = 0;
+ 		}	
+ #endif /* WSC_NFC_SUPPORT */		
+@@ -2776,7 +2776,7 @@ int ProcessMessageM1(
+ 					{
+ 						hex_dump("HashData", &HashData[0], NFC_DEV_PASSWD_HASH_LEN);
+ 						hex_dump("PeerNfcPasswdHash", &pWscControl->PeerNfcPasswdHash[0], NFC_DEV_PASSWD_HASH_LEN);
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Enrollee public key hash different!\n"));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Enrollee public key hash different!\n"));
+ 						pWscControl->RegData.SelfInfo.ConfigError = WSC_ERROR_PUBLIC_KEY_HASH_MISMATCH;						
+ 					}
+ 				}
+@@ -3071,7 +3071,7 @@ int ProcessMessageM2(
+ 					{
+ 						hex_dump("HashData", &HashData[0], NFC_DEV_PASSWD_HASH_LEN);
+ 						hex_dump("PeerNfcPasswdHash", &pWscControl->NfcPasswdHash[0], NFC_DEV_PASSWD_HASH_LEN);
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Registrar public key hash different!\n"));
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Registrar public key hash different!\n"));
+ 						ret = WSC_ERROR_PUBLIC_KEY_HASH_MISMATCH;
+ 					}
+ 				}
+@@ -3264,7 +3264,7 @@ int ProcessMessageM2(
+ 	
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM2 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM2 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+@@ -3558,7 +3558,7 @@ int ProcessMessageM3(
+ 	
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM3 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM3 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+@@ -3739,7 +3739,7 @@ int ProcessMessageM4(
+ 	
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM4 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM4 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+@@ -3913,7 +3913,7 @@ int ProcessMessageM5(
+ 	
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM5 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM5 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+@@ -4084,7 +4084,7 @@ int ProcessMessageM6(
+ 	
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM6 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM6 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+@@ -4236,7 +4236,7 @@ int ProcessMessageM7(
+     }
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM7 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM7 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+@@ -4382,7 +4382,7 @@ int ProcessMessageM8(
+     }
+ 	if (RTMPEqualMemory(Hmac, KDK, 8) != 1)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("ProcessMessageM8 --> HMAC not match\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("ProcessMessageM8 --> HMAC not match\n"));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("MD --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) KDK)), (UINT)cpu2be32(*((PUINT)(KDK + 4)))));
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("calculated --> 0x%08x-%08x\n", (UINT)cpu2be32(*((PUINT) &Hmac[0])), (UINT)cpu2be32(*((PUINT) &Hmac[4]))));
+ 		ret = WSC_ERROR_HMAC_FAIL;
+diff --git a/mt_wifi/embedded/mcu/andes_mt.c b/mt_wifi/embedded/mcu/andes_mt.c
+index 6dc4503..7a7a9a1 100755
+--- a/mt_wifi/embedded/mcu/andes_mt.c
++++ b/mt_wifi/embedded/mcu/andes_mt.c
+@@ -4419,7 +4419,9 @@ error:
+ 	ret = AndesSendCmdMsg(pAd, msg);
+ 
+ error:
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s:(ret = %d)\n", __FUNCTION__, ret));
++	if (ret) {
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s:(ret = %d)\n", __FUNCTION__, ret));
++	}
+ 	return ret;
+  }
+ 
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c
+index a7afbfd..878cc84 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c
+@@ -363,7 +363,7 @@ static int CFG80211_OpsMonitorChannelSet(struct wiphy *pWiphy,
+ 
+ 	ChanInfo.IfType = pNetDev->ieee80211_ptr->iftype;
+ 
+-	CFG80211DBG(DBG_LVL_ERROR, ("80211> ChanInfo.IfType == %d!\n",ChanInfo.IfType));
++	CFG80211DBG(DBG_LVL_TRACE, ("80211> ChanInfo.IfType == %d!\n",ChanInfo.IfType));
+ 
+ 	if (cfg80211_get_chandef_type(chandef) == NL80211_CHAN_NO_HT)
+ 		ChanInfo.ChanType = RT_CMD_80211_CHANTYPE_NOHT;
+@@ -2431,7 +2431,7 @@ static int CFG80211_OpsStartAp(
+ 	
+ 		ChanInfo.IfType = RT_CMD_80211_IFTYPE_P2P_GO;
+ 	
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> ChanInfo.IfType == %d!\n", ChanInfo.IfType));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> ChanInfo.IfType == %d!\n", ChanInfo.IfType));
+ 	
+ 		if (cfg80211_get_chandef_type(&settings->chandef) == NL80211_CHAN_NO_HT)
+ 			ChanInfo.ChanType = RT_CMD_80211_CHANTYPE_NOHT;
+@@ -2442,7 +2442,7 @@ static int CFG80211_OpsStartAp(
+ 		else if (cfg80211_get_chandef_type(&settings->chandef) == NL80211_CHAN_HT40PLUS)
+ 			ChanInfo.ChanType = RT_CMD_80211_CHANTYPE_HT40PLUS;
+ 		
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> ChanInfo.ChanType == %d!\n", ChanInfo.ChanType));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> ChanInfo.ChanType == %d!\n", ChanInfo.ChanType));
+ 		ChanInfo.MonFilterFlag = p80211CB->MonFilterFlag;
+ 	
+ 		/* set channel */
+@@ -3157,7 +3157,7 @@ static struct wireless_dev *CFG80211_WdevAlloc(
+ 		goto LabelErrReg;
+ 	} 
+ 	
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("80211> Register wiphy device pWdev->wiphy->mgmt_stypes[2].rx=0x%x\n",pWdev->wiphy->mgmt_stypes[2].rx));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("80211> Register wiphy device pWdev->wiphy->mgmt_stypes[2].rx=0x%x\n",pWdev->wiphy->mgmt_stypes[2].rx));
+ 	return pWdev;
+ 
+  LabelErrReg:
+@@ -3219,7 +3219,7 @@ BOOLEAN CFG80211_Register(
+ 		os_free_mem(NULL, pCfg80211_CB);
+ 		return FALSE;
+ 	} else
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("80211> CFG80211_Register wdev(%p)\n",pCfg80211_CB->pCfg80211_Wdev));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("80211> CFG80211_Register wdev(%p)\n",pCfg80211_CB->pCfg80211_Wdev));
+ 
+ 	/* bind wireless device with net device */
+ #ifdef CONFIG_AP_SUPPORT
+@@ -3252,7 +3252,7 @@ BOOLEAN CFG80211_Register(
+ 		CFG80211DBG(DBG_LVL_ERROR, ("80211> Failed to register notifierl %d\n", err));
+ 	}
+ 
+-	CFG80211DBG(DBG_LVL_ERROR, ("80211> CFG80211_Register\n"));
++	CFG80211DBG(DBG_LVL_TRACE, ("80211> CFG80211_Register\n"));
+ 	return TRUE;
+ } /* End of CFG80211_Register */
+ 
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_ap.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_ap.c
+index 202d229..99dd2f0 100644
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_ap.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_ap.c
+@@ -147,14 +147,14 @@ static INT CFG80211DRV_UpdateApSettingFromBeacon(PRTMP_ADAPTER pAd, UINT mbss_id
+ 	{
+ 		NdisMoveMemory(pMbss->Ssid, "CFG_Linux_GO", 12);
+ 		pMbss->SsidLen = 12;
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("CFG: SSID Not Found In Packet\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("CFG: SSID Not Found In Packet\n"));
+ 	}
+ 	else if (pBeacon->ssid_len != 0)
+ 	{
+ 		NdisZeroMemory(pMbss->Ssid, pMbss->SsidLen);
+ 		pMbss->SsidLen = pBeacon->ssid_len;
+ 		NdisCopyMemory(pMbss->Ssid, ssid_ie+2, pMbss->SsidLen);		
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("\nCFG : SSID: %s, %d\n", pMbss->Ssid, pMbss->SsidLen));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("\nCFG : SSID: %s, %d\n", pMbss->Ssid, pMbss->SsidLen));
+ 	}
+ 
+ 
+@@ -167,7 +167,7 @@ static INT CFG80211DRV_UpdateApSettingFromBeacon(PRTMP_ADAPTER pAd, UINT mbss_id
+ 		{
+ 			pMbss->SsidLen = pBeacon->ssid_len;
+ 			NdisCopyMemory(pMbss->Ssid, pBeacon->ssid, pMbss->SsidLen);
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("80211> [Hidden] SSID: %s, %d\n", pMbss->Ssid, pMbss->SsidLen));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("80211> [Hidden] SSID: %s, %d\n", pMbss->Ssid, pMbss->SsidLen));
+ 		}
+ 	}
+ 	else
+@@ -361,7 +361,7 @@ VOID CFG80211_UpdateBeacon(
+ 			pCfg80211_ctrl->beacon_tail_len = 0;
+ 			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211 Beacon: MEM ALLOC ERROR\n"));
+ 		}
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: %d isAllUpdate return!\n",__FUNCTION__, __LINE__)); 
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: %d isAllUpdate return!\n",__FUNCTION__, __LINE__)); 
+ 
+ 		return;  	
+ 	}
+@@ -389,12 +389,12 @@ VOID CFG80211_UpdateBeacon(
+ #endif /* RTMP_PCI_SUPPORT */
+ 
+         if (pMbss->bcn_buf.bcn_state != BCN_TX_IDLE) {
+-            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s()=>BSS0:BcnPkt not idle(%d)!\n",
++            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s()=>BSS0:BcnPkt not idle(%d)!\n",
+                                     __FUNCTION__, pMbss->bcn_buf.bcn_state));
+         	APCheckBcnQHandler(pAd, apidx, &is_pretbtt_int);
+             if (is_pretbtt_int == FALSE)
+ 			{
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("==============> pretbtt_int not init \n"));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("==============> pretbtt_int not init \n"));
+                 return;
+ 			}
+ 		}
+@@ -955,7 +955,7 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
+ 			}
+ 			else	
+ 			{
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("CFG: Set AES Security Set. (PAIRWISE) But pEntry NULL\n"));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("CFG: Set AES Security Set. (PAIRWISE) But pEntry NULL\n"));
+ 			}
+ 		
+ 		}
+@@ -1016,7 +1016,7 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
+ 			}
+ 			else	
+ 			{
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("CFG: Set TKIP Security Set. (PAIRWISE) But pEntry NULL\n"));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("CFG: Set TKIP Security Set. (PAIRWISE) But pEntry NULL\n"));
+ 			}
+ 		
+ 		}
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c
+index b8c45c9..40069cd 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c
+@@ -1122,7 +1122,7 @@ VOID RTMP_CFG80211_VirtualIF_CancelP2pClient(VOID *pAdSrc)
+     	{
+         	if (pDevEntry->devType == RT_CMD_80211_IFTYPE_P2P_CLIENT)
+         	{
+-                	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("==> RTMP_CFG80211_VirtualIF_CancelP2pClient HIT.\n"));
++                	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("==> RTMP_CFG80211_VirtualIF_CancelP2pClient HIT.\n"));
+                         	pDevEntry->devType = RT_CMD_80211_IFTYPE_P2P_GO;
+ 			rtmp_wdev_idx_unreg(pAd, &pAd->ApCfg.ApCliTab[MAIN_MBSSID].wdev);
+                         break;
+@@ -1428,7 +1428,7 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
+ 	}
+ 	else
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Register CFG80211 I/F (%s)\n", RTMP_OS_NETDEV_GET_DEVNAME(new_dev_p)));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Register CFG80211 I/F (%s)\n", RTMP_OS_NETDEV_GET_DEVNAME(new_dev_p)));
+ 	}
+ 
+ 	RTMP_OS_NETDEV_SET_PRIV(new_dev_p, pAd);
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_p2p.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_p2p.c
+index 8ab0ced..1c51c0a 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_p2p.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_p2p.c
+@@ -667,7 +667,7 @@ VOID CFG80211_LostP2pGoInform(VOID *pAdCB)
+ #endif 
+ 	}
+ 	else
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("80211> BUG CFG80211_LostGoInform, BUT NetDevice not exist.\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("80211> BUG CFG80211_LostGoInform, BUT NetDevice not exist.\n"));
+ 		
+ 	Set_ApCli_Enable_Proc(pAd, "0");	
+ #ifdef RT_CFG80211_P2P_CONCURRENT_DEVICE
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_rx.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_rx.c
+index 976edbd..2d68a1c 100644
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_rx.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_rx.c
+@@ -96,45 +96,45 @@ BOOLEAN CFG80211_CheckActionFrameType(
+ 				switch (pFrame->Subtype)
+ 				{
+ 					case GO_NEGOCIATION_REQ:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s GO_NEGOCIACTION_REQ %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s GO_NEGOCIACTION_REQ %d\n", 
+ 									preStr, pAd->LatchRfRegs.Channel));
+ 						break;	
+ 
+ 					case GO_NEGOCIATION_RSP:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s GO_NEGOCIACTION_RSP %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s GO_NEGOCIACTION_RSP %d\n", 
+ 									preStr, pAd->LatchRfRegs.Channel));
+ 						break;
+ 
+ 					case GO_NEGOCIATION_CONFIRM:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s GO_NEGOCIACTION_CONFIRM %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s GO_NEGOCIACTION_CONFIRM %d\n", 
+ 									preStr,  pAd->LatchRfRegs.Channel));
+ 						break;
+ 
+ 					case P2P_PROVISION_REQ:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2P_PROVISION_REQ %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2P_PROVISION_REQ %d\n", 
+ 									preStr, pAd->LatchRfRegs.Channel));
+ 						break;
+ 
+ 					case P2P_PROVISION_RSP:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2P_PROVISION_RSP %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2P_PROVISION_RSP %d\n", 
+ 									preStr, pAd->LatchRfRegs.Channel));
+ 						break;
+ 
+ 					case P2P_INVITE_REQ:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2P_INVITE_REQ %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2P_INVITE_REQ %d\n", 
+ 									preStr, pAd->LatchRfRegs.Channel));
+ 						break;
+ 
+ 					case P2P_INVITE_RSP:
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2P_INVITE_RSP %d\n", 
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2P_INVITE_RSP %d\n", 
+ 									preStr, pAd->LatchRfRegs.Channel));
+ 						break;
+ 					case P2P_DEV_DIS_REQ:
+-                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2P_DEV_DIS_REQ %d\n",
++                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2P_DEV_DIS_REQ %d\n",
+                                                 preStr, pAd->LatchRfRegs.Channel));
+ 						break;						
+ 					case P2P_DEV_DIS_RSP:
+-                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2P_DEV_DIS_RSP %d\n",
++                        MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2P_DEV_DIS_RSP %d\n",
+                                                 preStr, pAd->LatchRfRegs.Channel));
+                         break;
+ 				}
+@@ -158,19 +158,19 @@ BOOLEAN CFG80211_CheckActionFrameType(
+     				switch (pP2PActionFrame->Subtype)
+     				{
+                         case P2PACT_NOA:
+-                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2PACT_NOA %d\n",
++                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2PACT_NOA %d\n",
+                                                       preStr, pAd->LatchRfRegs.Channel));
+     						break;
+     					case P2PACT_PERSENCE_REQ:
+-                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2PACT_PERSENCE_REQ %d\n",
++                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2PACT_PERSENCE_REQ %d\n",
+                                                       preStr, pAd->LatchRfRegs.Channel));
+     						break;
+     					case P2PACT_PERSENCE_RSP:
+-                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2PACT_PERSENCE_RSP %d\n",
++                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2PACT_PERSENCE_RSP %d\n",
+                                                       preStr, pAd->LatchRfRegs.Channel));
+     						break;
+     					case P2PACT_GO_DISCOVER_REQ:
+-                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG80211_PKT: %s P2PACT_GO_DISCOVER_REQ %d\n",
++                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG80211_PKT: %s P2PACT_GO_DISCOVER_REQ %d\n",
+                                                       preStr, pAd->LatchRfRegs.Channel));
+     						break;
+     				}
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_tdls.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_tdls.c
+index 3de888d..7ba9d30 100644
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_tdls.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_tdls.c
+@@ -327,7 +327,7 @@ BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(
+ 	HT_CAPABILITY_IE HtCapabilityTmp;
+ 	
+ 	peer = (UCHAR *)pData;
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("=====>  %s() peer: %02x:%02x:%02x:%02x:%02x:%02x ,op: %d\n", __FUNCTION__,PRINT_MAC(peer),Data));  //Kyle Debug
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("=====>  %s() peer: %02x:%02x:%02x:%02x:%02x:%02x ,op: %d\n", __FUNCTION__,PRINT_MAC(peer),Data));  //Kyle Debug
+ 
+ 	//pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.IneedKey = 0;
+ 
+@@ -467,7 +467,7 @@ BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(
+ 										PAIRWISEKEYTABLE);
+ 										*/
+ 					#ifdef MT_MAC
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("======%s %d EntryType %d\n",__FUNCTION__,__LINE__,pMacEntry->EntryType));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("======%s %d EntryType %d\n",__FUNCTION__,__LINE__,pMacEntry->EntryType));
+ 					AsicUpdateRxWCIDTable(pAd, pMacEntry->wcid, pAd->CommonCfg.Bssid);
+ 					#endif
+ 					AsicAddPairwiseKeyEntry(pAd,
+@@ -516,7 +516,7 @@ BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(
+ 		{
+ 			if (pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[i].EntryValid == TRUE && MAC_ADDR_EQUAL(peer, pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[i].MacAddr))
+ 			{
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("%s() clear TDLS entry %d\n", __FUNCTION__,i));				
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("%s() clear TDLS entry %d\n", __FUNCTION__,i));				
+ 				NdisZeroMemory(&(pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[i]),sizeof(CFG_TDLS_ENTRY));	
+ 				pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TdlsLinkCount--;
+ 				pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[i].pAd = pAd;
+@@ -531,9 +531,9 @@ BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(
+ 		}
+ 	}
+ 	else
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("%s() op: %d  DO NOTHING\n", __FUNCTION__,Data));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("%s() op: %d  DO NOTHING\n", __FUNCTION__,Data));
+ 	
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("<======  %s() out\n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("<======  %s() out\n", __FUNCTION__));
+ 	return TRUE;
+ }
+ #ifdef UAPSD_SUPPORT
+@@ -682,7 +682,7 @@ void cfg_tdls_rcv_PeerTrafficIndication(PRTMP_ADAPTER pAd,u8 dialog_token,u8 *pe
+ void cfg_tdls_rcv_PeerTrafficResponse(PRTMP_ADAPTER pAd,u8 *peer)
+ {
+ 	int i=0;
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("======>  %s() \n", __FUNCTION__));	
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("======>  %s() \n", __FUNCTION__));	
+ 	/* Not TDLS Capable, ignore it */
+ 	if (!IS_TDLS_SUPPORT(pAd))
+ 		return;
+@@ -703,7 +703,7 @@ void cfg_tdls_rcv_PeerTrafficResponse(PRTMP_ADAPTER pAd,u8 *peer)
+ 	
+ 	/* check if we can sleep if we are sleep mode */
+ 	RtmpAsicSleepHandle(pAd);
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("<======  %s() out\n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("<======  %s() out\n", __FUNCTION__));
+ 	return;
+ }
+ 
+@@ -713,7 +713,7 @@ void cfg_tdls_send_PeerTrafficIndication(PRTMP_ADAPTER pAd, u8 *peer)
+ 	int tdls_entry_link_index=0;
+ 	UINT8 dialog_token = 0;
+ 	BOOLEAN TimerCancelled;
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("======>  %s() \n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("======>  %s() \n", __FUNCTION__));
+ 	
+ 	if(pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TdlsDialogToken == 0)
+ 	{pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TdlsDialogToken = 1;}
+@@ -759,7 +759,7 @@ void cfg_tdls_send_PeerTrafficIndication(PRTMP_ADAPTER pAd, u8 *peer)
+ 	
+ 	RTMPCancelTimer(&pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[tdls_entry_link_index].Timer, &TimerCancelled);
+ 	RTMPSetTimer(&pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[tdls_entry_link_index].Timer, TDLS_TIMEOUT);
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("<======  %s() out\n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("<======  %s() out\n", __FUNCTION__));
+ }
+ VOID cfg_tdls_TimerInit(PRTMP_ADAPTER pAd)
+ {
+@@ -969,7 +969,7 @@ u8 reason_code
+ 	{
+ 		// fill status code 
+ 		status_code = cpu2le16(status_code);
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("########## status code : 0x%04x \n",status_code));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("########## status code : 0x%04x \n",status_code));
+ 		MakeOutgoingFrame(pOutBuffer + FrameLen,		&TempLen,
+ 						2,				&status_code,
+ 						END_OF_ARGS);
+@@ -1349,7 +1349,7 @@ u8 reason_code
+ 				QosInfo.UAPSD_AC_VO = 1;//pAd->CommonCfg.TDLS_bAPSDAC_VO;
+ 				QosInfo.MaxSPLength = 0;//pAd->CommonCfg.TDLS_MaxSPLength;
+ 				
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("tdls our uapsd> UAPSD %d %d %d %d %d!\n",
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("tdls our uapsd> UAPSD %d %d %d %d %d!\n",
+ 						QosInfo.UAPSD_AC_BE,
+ 						QosInfo.UAPSD_AC_BK,
+ 						QosInfo.UAPSD_AC_VI,
+@@ -1394,7 +1394,7 @@ u8 reason_code
+ 			QosInfo.UAPSD_AC_VO = 1;//pAd->CommonCfg.TDLS_bAPSDAC_VO;
+ 			QosInfo.MaxSPLength = 0;//pAd->CommonCfg.TDLS_MaxSPLength;
+ 			
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("tdls our uapsd> UAPSD %d %d %d %d %d!\n",
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("tdls our uapsd> UAPSD %d %d %d %d %d!\n",
+ 					QosInfo.UAPSD_AC_BE,
+ 					QosInfo.UAPSD_AC_BK,
+ 					QosInfo.UAPSD_AC_VI,
+@@ -1492,35 +1492,35 @@ u8 reason_code
+ 	/////////////////// debug output /////////////////////////////
+ 	switch (action_code) {
+ 	case WLAN_TDLS_SETUP_REQUEST:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> WLAN_TDLS_SETUP_REQUEST ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> WLAN_TDLS_SETUP_REQUEST ==>\n"));
+ 		break;
+ 	case WLAN_TDLS_SETUP_RESPONSE:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> WLAN_TDLS_SETUP_RESPONSE ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> WLAN_TDLS_SETUP_RESPONSE ==>\n"));
+ 		break;
+ 	case WLAN_TDLS_SETUP_CONFIRM:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> WLAN_TDLS_SETUP_CONFIRM ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> WLAN_TDLS_SETUP_CONFIRM ==>\n"));
+ 		break;
+ 	case WLAN_TDLS_TEARDOWN:
+ 	case TDLS_ACTION_CODE_AUTO_TEARDOWN:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> WLAN_TDLS_TEARDOWN ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> WLAN_TDLS_TEARDOWN ==>\n"));
+ 		break;
+ 	case WLAN_TDLS_DISCOVERY_REQUEST:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> WLAN_TDLS_DISCOVERY_REQUEST ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> WLAN_TDLS_DISCOVERY_REQUEST ==>\n"));
+ 		break;
+ 	case WLAN_PUB_ACTION_TDLS_DISCOVER_RES:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> WLAN_PUB_ACTION_TDLS_DISCOVERY_RESPONSE ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> WLAN_PUB_ACTION_TDLS_DISCOVERY_RESPONSE ==>\n"));
+ 		break;
+ 	case TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION ==>\n"));
+ 		break;
+ 	case TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ ==>\n"));
+ 		break;
+ 	case TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP ==>\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP ==>\n"));
+ 		break;
+ 	default:
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> UNKNOWN TDLS PACKET %d ==>\n",action_code));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> UNKNOWN TDLS PACKET %d ==>\n",action_code));
+ 		break;
+ 	}
+ 	hex_dump("TDLS send pack", pOutBuffer, FrameLen);
+@@ -1703,7 +1703,7 @@ VOID cfg_tdls_rx_parsing(PRTMP_ADAPTER pAd,RX_BLK *pRxBlk)
+ 						{
+ 							pCfgTdls->TDLSEntry[tdls_entry_index].QosCapability = pEid->Octet[6];
+ 						}
+-						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("%s : RCV QosCapa 0x[%x] from peer MAC: (%02X:%02X:%02X:%02X:%02X:%02X)\n"
++						MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("%s : RCV QosCapa 0x[%x] from peer MAC: (%02X:%02X:%02X:%02X:%02X:%02X)\n"
+ 						,__FUNCTION__, pCfgTdls->TDLSEntry[tdls_entry_index].QosCapability, PRINT_MAC(peerMAC)));
+ 						break;
+ 					case IE_HT_CAP:
+@@ -1766,12 +1766,12 @@ void cfg_tdls_prepare_null_frame(PRTMP_ADAPTER	pAd,BOOLEAN powersave,UCHAR dir,U
+ 						PWR_ACTIVE,
+ 						TRUE,
+ 						1);
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("\n=====>  %s() !!\n", __FUNCTION__));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("\n=====>  %s() !!\n", __FUNCTION__));
+ }
+ 
+ void cfg_tdls_auto_teardown(PRTMP_ADAPTER pAd,UCHAR *peerAddr)
+ {
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s(): auto teardown link with (%02X:%02X:%02X:%02X:%02X:%02X)!!\n"
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s(): auto teardown link with (%02X:%02X:%02X:%02X:%02X:%02X)!!\n"
+ 				, __FUNCTION__,PRINT_MAC(peerAddr)));
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+ 	cfg_tlds_build_frame(pAd, peerAddr, 1, TDLS_ACTION_CODE_TEARDOWN, 0, NULL, 0, FALSE, 0, 25);
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c
+index 5a460e3..a8c985a 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c
+@@ -189,7 +189,7 @@ VOID CFG80211OS_UnRegister(VOID *pCB, VOID *pNetDevOrg)
+ 	/* unregister */
+ 	if (pCfg80211_CB->pCfg80211_Wdev != NULL)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("80211> unregister/free wireless device\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("80211> unregister/free wireless device\n"));
+ 
+ 		/*
+ 			Must unregister, or you will suffer problem when you change
+@@ -288,8 +288,8 @@ BOOLEAN CFG80211_SupBandInit(
+ 	else
+ 		NumOfRate = 4 + 8;
+ 
+-	CFG80211DBG(DBG_LVL_ERROR, ("80211> RFICType= %d, NumOfChan= %d\n", pDriverBandInfo->RFICType, NumOfChan));
+-	CFG80211DBG(DBG_LVL_ERROR, ("80211> Number of rate = %d\n", NumOfRate));
++	CFG80211DBG(DBG_LVL_TRACE, ("80211> RFICType= %d, NumOfChan= %d\n", pDriverBandInfo->RFICType, NumOfChan));
++	CFG80211DBG(DBG_LVL_TRACE, ("80211> Number of rate = %d\n", NumOfRate));
+ 	
+ 	/* 3. Allocate the Channel instance */
+ 	if (pChannels == NULL && NumOfChan)
+@@ -321,7 +321,7 @@ BOOLEAN CFG80211_SupBandInit(
+ 	CurTxPower = 0; /* unknown */
+ #endif /* SINGLE_SKU */
+ 
+-	CFG80211DBG(DBG_LVL_ERROR, ("80211> CurTxPower = %d dBm\n", CurTxPower));
++	CFG80211DBG(DBG_LVL_TRACE, ("80211> CurTxPower = %d dBm\n", CurTxPower));
+ 
+ 	/* 5. init channel */
+ 	for(IdLoop=0; IdLoop<NumOfChan; IdLoop++)
+@@ -541,7 +541,7 @@ BOOLEAN CFG80211OS_SupBandReInit(
+ 
+ 	if (pWiphy != NULL)
+ 	{
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> re-init bands...\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> re-init bands...\n"));
+ 
+ 		/* re-init bands */
+ 		CFG80211_SupBandInit(pCfg80211_CB, pBandInfo, pWiphy,
+@@ -588,7 +588,7 @@ VOID CFG80211OS_RegHint(
+ 	CFG80211_CB *pCfg80211_CB = (CFG80211_CB *)pCB;
+ 
+ 
+-	CFG80211DBG(DBG_LVL_ERROR,
++	CFG80211DBG(DBG_LVL_TRACE,
+ 			("crda> regulatory domain hint: %c%c\n",
+ 			pCountryIe[0], pCountryIe[1]));
+ 
+@@ -635,7 +635,7 @@ VOID CFG80211OS_RegHint11D(
+ 		return;
+ 	}
+ 
+-	CFG80211DBG(DBG_LVL_ERROR,
++	CFG80211DBG(DBG_LVL_TRACE,
+ 				("crda> regulatory domain hint: %c%c\n",
+ 				pCountryIe[0], pCountryIe[1]));
+ 
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c
+index 06d5f97..1dfd4fc 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c
+@@ -306,7 +306,7 @@ INT CFG80211DRV_IoctlHandle(
+ 			*/
+ 			if (pAd->cfg80211_ctrl.FlgCfg80211Scanning == TRUE)
+ 			{
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("CFG_SCAN: close the scan cmd in device close phase\n"));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("CFG_SCAN: close the scan cmd in device close phase\n"));
+ 				CFG80211OS_ScanEnd(pAd->pCfg80211_CB, TRUE);
+ 				pAd->cfg80211_ctrl.FlgCfg80211Scanning = FALSE;
+ 			}
+@@ -591,13 +591,13 @@ BOOLEAN CFG80211DRV_OpsSetChannel(RTMP_ADAPTER *pAd, VOID *pData)
+                        if ((pAd->StaCfg.wdev.bw != BW_20) && (ChannelType <= RT_CMD_80211_CHANTYPE_HT20))                                       
+                        {                                                           
+                                ChannelType = pAd->CommonCfg.CentralChannel>pAd->CommonCfg.Channel?RT_CMD_80211_CHANTYPE_HT40PLUS:RT_CMD_80211_CHANTYPE_HT40MINUS;                             
+-                               MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Infra@HT40, Force P2P GO@HT40\n"));                               
++                               MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Infra@HT40, Force P2P GO@HT40\n"));                               
+                         }                                                                                         
+ 
+                         if ((pAd->StaCfg.wdev.bw == BW_20) && (ChannelType >= RT_CMD_80211_CHANTYPE_HT40MINUS))                          
+                         {                                                           
+                                 ChannelType = RT_CMD_80211_CHANTYPE_HT20;                                                                         
+-                                                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Infra@HT20, Force P2P GO@HT20\n"));                               
++                                                            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Infra@HT20, Force P2P GO@HT20\n"));                               
+                          }              
+                                              
+                        FlgIsChanged = FALSE;;                  
+@@ -742,7 +742,7 @@ BOOLEAN CFG80211DRV_OpsSetChannel(RTMP_ADAPTER *pAd, VOID *pData)
+ 	if(IfType == RT_CMD_80211_IFTYPE_AP ||
+ 	   IfType == RT_CMD_80211_IFTYPE_P2P_GO)
+ 	{
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> Set the channel in AP Mode\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> Set the channel in AP Mode\n"));
+ 		return TRUE;
+ 	}
+ #ifdef CONFIG_STA_SUPPORT
+@@ -755,7 +755,7 @@ BOOLEAN CFG80211DRV_OpsSetChannel(RTMP_ADAPTER *pAd, VOID *pData)
+ 
+ 			Re-connect to the AP due to BW 20/40 or HT/non-HT change.
+ 		*/
+-		CFG80211DBG(DBG_LVL_ERROR, ("80211> Set the channel in STA Mode\n"));
++		CFG80211DBG(DBG_LVL_TRACE, ("80211> Set the channel in STA Mode\n"));
+ 	} 
+ 
+ 	if (IfType == RT_CMD_80211_IFTYPE_ADHOC)
+@@ -1059,7 +1059,7 @@ BOOLEAN CFG80211DRV_StaKeyAdd(
+ 	{
+ 		PPMF_CFG pPmfCfg = pPmfCfg = &pAd->StaCfg.PmfCfg;
+ 		hex_dump("PMF IGTK pKeyInfo->KeyBuf=", (UINT8 *)pKeyInfo->KeyBuf, pKeyInfo->KeyLen);
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("PMF IGTK pKeyInfo->KeyId=%d\n",pKeyInfo->KeyId));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("PMF IGTK pKeyInfo->KeyId=%d\n",pKeyInfo->KeyId));
+ 
+ 		//only 4 or 5, no other case!		
+ 		if (pKeyInfo->KeyId == 4 || pKeyInfo->KeyId == 5)
+@@ -1395,7 +1395,7 @@ BOOLEAN CFG80211DRV_Connect(
+ 		memcpy(KeyBuf, pConnInfo->pKey, pConnInfo->KeyLen);
+ 		KeyBuf[pConnInfo->KeyLen] = 0x00;
+ 
+-		CFG80211DBG(DBG_LVL_ERROR,
++		CFG80211DBG(DBG_LVL_TRACE,
+ 					("80211> pAd->StaCfg.DefaultKeyId = %d\n",
+ 					pAd->StaCfg.wdev.DefaultKeyId));
+ 
+diff --git a/mt_wifi/embedded/os/linux/pci_main_dev.c b/mt_wifi/embedded/os/linux/pci_main_dev.c
+index e5133b1..3f0df98 100644
+--- a/mt_wifi/embedded/os/linux/pci_main_dev.c
++++ b/mt_wifi/embedded/os/linux/pci_main_dev.c
+@@ -472,7 +472,7 @@ static struct pci_driver rt_pci_driver =
+ */
+ int __init rt_pci_init_module(void)
+ {
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("register %s\n", RTMP_DRV_NAME));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("register %s\n", RTMP_DRV_NAME));
+ /*
+ 	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("DriverVersion: 2.7.0.2-Beta-121007\n"
+ 								"\tBBP:120824\n"
+diff --git a/mt_wifi/embedded/os/linux/rt_profile.c b/mt_wifi/embedded/os/linux/rt_profile.c
+index 319eec1..ba4854c 100755
+--- a/mt_wifi/embedded/os/linux/rt_profile.c
++++ b/mt_wifi/embedded/os/linux/rt_profile.c
+@@ -862,7 +862,7 @@ INT Monitor_VirtualIF_Open(PNET_DEV dev_p)
+ 	pAd = RTMP_OS_NETDEV_GET_PRIV(dev_p);
+ 	ASSERT(pAd);
+ 
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: ===> %s\n", __FUNCTION__, RTMP_OS_NETDEV_GET_DEVNAME(dev_p)));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s: ===> %s\n", __FUNCTION__, RTMP_OS_NETDEV_GET_DEVNAME(dev_p)));
+ 
+ 	if (VIRTUAL_IF_UP(pAd) != 0)
+ 		return -1;
+diff --git a/mt_wifi/embedded/os/linux/rt_rbus_pci_drv.c b/mt_wifi/embedded/os/linux/rt_rbus_pci_drv.c
+index 47374c2..ea80703 100644
+--- a/mt_wifi/embedded/os/linux/rt_rbus_pci_drv.c
++++ b/mt_wifi/embedded/os/linux/rt_rbus_pci_drv.c
+@@ -1656,7 +1656,7 @@ redo:
+ 			a packet, such as TX_MGMTCTX_IDX, but MAC finds some fields in
+ 			the transmit buffer descriptor is not correct, ex: all zeros.
+ 		*/
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (">>>TxCoherent<<<\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (">>>TxCoherent<<<\n"));
+ 		RTMPHandleRxCoherentInterrupt(pAd);
+ //+++Add by shiang for debug
+ 		rt2860_int_disable(pAd, TxCoherent);
+@@ -1665,7 +1665,7 @@ redo:
+ 
+ 	if (IntSource & RxCoherent)
+ 	{
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, (">>>RxCoherent<<<\n"));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, (">>>RxCoherent<<<\n"));
+ 		RTMPHandleRxCoherentInterrupt(pAd);
+ //+++Add by shiang for debug
+ 		rt2860_int_disable(pAd, RxCoherent);
+@@ -2010,7 +2010,7 @@ VOID RTMPPCIeLinkCtrlValueRestore(RTMP_ADAPTER *pAd, UCHAR Level)
+     		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Restore PCI host : offset 0x%x = 0x%x\n", pAd->HostLnkCtrlOffset, Configuration));
+         }
+         else
+-            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Restore PCI host : PCI_REG_READ_WORD failed (Configuration = 0x%x)\n", Configuration));
++            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Restore PCI host : PCI_REG_READ_WORD failed (Configuration = 0x%x)\n", Configuration));
+     }
+ 
+     if (pObj->pci_dev && (pAd->RLnkCtrlOffset != 0))
+@@ -2029,7 +2029,7 @@ VOID RTMPPCIeLinkCtrlValueRestore(RTMP_ADAPTER *pAd, UCHAR Level)
+     		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Restore Ralink : offset 0x%x = 0x%x\n", pAd->RLnkCtrlOffset, Configuration));
+         }
+         else
+-            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Restore Ralink : PCI_REG_READ_WORD failed (Configuration = 0x%x)\n", Configuration));
++            MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("Restore Ralink : PCI_REG_READ_WORD failed (Configuration = 0x%x)\n", Configuration));
+ 	}
+ 
+ 	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("%s <===\n", __FUNCTION__));
+@@ -2342,7 +2342,7 @@ VOID RTMPInitPCIeLinkCtrlValue(RTMP_ADAPTER *pAd)
+ 			if ((data2 == 0x9280) && ((pAd->MACVersion&0xffff) == 0x0211))
+ 			{
+ 				pAd->b3090ESpecialChip = TRUE;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,("Special 3090E chip \n"));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,("Special 3090E chip \n"));
+ 			}
+ 
+ 			RTMP_IO_READ32(pAd, AUX_CTRL, &MacValue);
+@@ -2350,7 +2350,7 @@ VOID RTMPInitPCIeLinkCtrlValue(RTMP_ADAPTER *pAd)
+ 			/*Force PCIE 125MHz CLK to toggle */
+ 			MacValue |= 0x402;
+ 			RTMP_IO_WRITE32(pAd, AUX_CTRL, MacValue);
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" AUX_CTRL = 0x%32x\n", MacValue));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" AUX_CTRL = 0x%32x\n", MacValue));
+ 
+ 
+ 
+@@ -2360,33 +2360,33 @@ VOID RTMPInitPCIeLinkCtrlValue(RTMP_ADAPTER *pAd)
+ 				&& (pAd->StaCfg.PSControl.field.rt30xxPowerMode <= 3))
+ 			{
+ 				RTMP_IO_READ32(pAd, AUX_CTRL, &MacValue);
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" Read AUX_CTRL = 0x%x\n", MacValue));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" Read AUX_CTRL = 0x%x\n", MacValue));
+ 				/* turn on bit 12. */
+ 				/*enable 32KHz clock mode for power saving */
+ 				MacValue |= 0x1000;
+ 				if (MacValue != 0xffffffff)
+ 				{
+ 					RTMP_IO_WRITE32(pAd, AUX_CTRL, MacValue);
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" Write AUX_CTRL = 0x%x\n", MacValue));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" Write AUX_CTRL = 0x%x\n", MacValue));
+ 					/* 1. if use PCIePowerSetting is 2 or 3, need to program OSC_CTRL to 0x3ff11. */
+ 					MacValue = 0x3ff11;
+ 					RTMP_IO_WRITE32(pAd, OSC_CTRL, MacValue);
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" OSC_CTRL = 0x%x\n", MacValue));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" OSC_CTRL = 0x%x\n", MacValue));
+ 					/* 2. Write PCI register Clk ref bit */
+ 					RTMPrt3xSetPCIePowerLinkCtrl(pAd);
+ 				}
+ 				else
+ 		{
+ 					/* Error read Aux_Ctrl value.  Force to use solution 1 */
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" Error Value in AUX_CTRL = 0x%x\n", MacValue));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" Error Value in AUX_CTRL = 0x%x\n", MacValue));
+ 					pAd->StaCfg.PSControl.field.rt30xxPowerMode = 1;
+-					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,(" Force to use power solution1 \n"));
++					MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE,(" Force to use power solution1 \n"));
+ 				}
+ 			}
+ 			/* 1. read setting from inf file. */
+ 
+ 			PCIePowerSaveLevel = (USHORT)pAd->StaCfg.PSControl.field.rt30xxPowerMode;
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("====> rt30xx Read PowerLevelMode =  0x%x.\n", PCIePowerSaveLevel));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("====> rt30xx Read PowerLevelMode =  0x%x.\n", PCIePowerSaveLevel));
+ 			/* 2. Check EnableNewPS. */
+ 			if (pAd->StaCfg.PSControl.field.EnableNewPS == FALSE)
+ 				PCIePowerSaveLevel = 1;
+@@ -2405,7 +2405,7 @@ VOID RTMPInitPCIeLinkCtrlValue(RTMP_ADAPTER *pAd)
+ 				/* Chip Version F and after only allow 1 or 2 or 3. This might be modified after new chip version come out. */
+ 				if (!((PCIePowerSaveLevel == 1) || (PCIePowerSaveLevel == 3)))
+ 					PCIePowerSaveLevel = 1;
+-				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("====> rt30xx F Write 0x83 Command = 0x%x.\n", PCIePowerSaveLevel));
++				MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("====> rt30xx F Write 0x83 Command = 0x%x.\n", PCIePowerSaveLevel));
+ 				pAd->PCIePowerSaveLevel = (USHORT)PCIePowerSaveLevel;
+ 				/* for 3090F , we need to add high-byte arg for 0x83 command to indicate the link control setting in */
+ 				/* PCI Configuration Space. Because firmware can't read PCI Configuration Space */
+diff --git a/mt_wifi/embedded/tx_rx/txs.c b/mt_wifi/embedded/tx_rx/txs.c
+index 8aebc9a..3b40ee5 100644
+--- a/mt_wifi/embedded/tx_rx/txs.c
++++ b/mt_wifi/embedded/tx_rx/txs.c
+@@ -29,7 +29,7 @@ INT32 TdlsTxSHandler(RTMP_ADAPTER *pAd, CHAR *Data)
+ 	TXS_D_3 *txs_d3 = &txs_entry->txs_d3;
+ 	TXS_D_4 *txs_d4 = &txs_entry->txs_d4;
+ 	pEntry = &pAd->MacTab.Content[txs_d3->wlan_idx];
+-	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():txs d0 me : %d\n", __FUNCTION__, txs_d0->ME));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s():txs d0 me : %d\n", __FUNCTION__, txs_d0->ME));
+ 	if(txs_d0->ME == 0)
+ 	{
+ 		pEntry->TdlsTxFailCount=0;
+@@ -178,7 +178,7 @@ INT32 EapReqIdTxSHandler(RTMP_ADAPTER *pAd, CHAR *Data)
+ 		return 0;
+ 	}
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR | DBG_FUNC_PS, ("%s: (RE=%d, LE=%d, ME=%d), wlan_idx = %d\n",__FUNCTION__, txs_d0->RE, txs_d0->LE, txs_d0->ME, txs_d3->wlan_idx));        	
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE | DBG_FUNC_PS, ("%s: (RE=%d, LE=%d, ME=%d), wlan_idx = %d\n",__FUNCTION__, txs_d0->RE, txs_d0->LE, txs_d0->ME, txs_d3->wlan_idx));        	
+ 	if ((txs_d0->RE == 0) && (txs_d0->LE == 0) && (txs_d0->ME == 0))
+ 	{
+ 		pEntry = &pAd->MacTab.Content[txs_d3->wlan_idx];
+diff --git a/mt_wifi/embedded/tx_rx/wdev_rx.c b/mt_wifi/embedded/tx_rx/wdev_rx.c
+index 3a5a5fa..b990c3f 100644
+--- a/mt_wifi/embedded/tx_rx/wdev_rx.c
++++ b/mt_wifi/embedded/tx_rx/wdev_rx.c
+@@ -500,13 +500,13 @@ if (0) {
+ 						dhcp_msg_type += 2;
+ 
+ 						if (*(dhcp_msg_type) == 2)
+-							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("### %s() DHCP OFFER to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));
++							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("### %s() DHCP OFFER to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));
+ 						if (*(dhcp_msg_type) == 5)
+-							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("### %s() DHCP ACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));							
++							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("### %s() DHCP ACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));							
+ 						if (*(dhcp_msg_type) == 6)
+-							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("### %s() DHCP NACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));
++							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("### %s() DHCP NACK to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));
+ 						if (*(dhcp_msg_type) == 8)
+-							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("### %s() DHCP INFORM to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));							
++							MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("### %s() DHCP INFORM to rept mac=%02x:%02x:%02x:%02x:%02x:%02x\n", __FUNCTION__, PRINT_MAC(pCliHwAddr)));							
+ 					}
+ #endif /* DATA_QUEUE_RESERVE */					
+ 					pReptEntry = RTMPLookupRepeaterCliEntry(pAd, FALSE, pCliHwAddr, TRUE, &isLinkValid);
+-- 
+2.24.1
+

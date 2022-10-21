@@ -1,0 +1,21 @@
+#!/bin/sh
+# Copyright (C) 2011 O.S. Systems Software LTDA.
+# Licensed on MIT
+#
+# Decrypt the BTCS, extract the RTCS key, stuff it in a kernel
+# keyring, and lock access to the NOR flash.
+# Most of the work (except for locking access to the NOR flash)
+# is performed by the (compiled) extract-rtcs-key command line
+# utility.
+#
+
+lockNOR_enabled() {
+	return 0
+}
+
+# Whack GPIO pin 14 to disable access to the NOR flash.
+lockNOR_run() {
+	echo "Disabling access to NOR flash" > /dev/kmsg
+	gpio -p 14 -s 1
+}
+

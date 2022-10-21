@@ -1,0 +1,118 @@
+From 075242b971d225dc3715ade8580c918aca193f1c Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 16 Jan 2020 14:27:06 -0500
+Subject: [PATCH] Add support for locking/unlocking the ISSI and Macronix flash
+ devices used on Sundial boards.
+
+This patch adds in support for the flash_lock()/flash_unlock() API for
+the ISSI and Macronix flash devices we use on Sundial boards.
+
+We do not support the full API as intended by the Linux kernel, we
+only support locking and unlocking the entire flash, regardless of
+which mtd partition is specified.  So, while sufficient unto the needs
+of the Sundial program, this should not be considered to be production
+ready in the general case.
+---
+ drivers/mtd/spi-nor/spi-nor.c | 79 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
+
+diff --git a/drivers/mtd/spi-nor/spi-nor.c b/drivers/mtd/spi-nor/spi-nor.c
+index 0063cf802919..17a8b2faf905 100644
+--- a/drivers/mtd/spi-nor/spi-nor.c
++++ b/drivers/mtd/spi-nor/spi-nor.c
+@@ -863,6 +863,79 @@ static int stm_is_locked(struct spi_nor *nor, loff_t ofs, uint64_t len)
+ 	return stm_is_locked_sr(nor, ofs, len, status);
+ }
+ 
++/*
++ * Lock the whole flash, ignoring the ofs and len parameters
++ *
++ * This is certainly a hack (hence the name), but it is required
++ * for iRobot's application.  Our NOR flash layout requires that
++ * we be able to lock the whole flash, and to unlock and relock
++ * only blocks 12 and 14.  The ISSI and Macronix parts can
++ * selectively lock/unlock
++ * blocks 15, 14-15, 12-15, 8-15, or the whole flash (and similarly
++ * blocks 0,   0-1,   0-3,  0-7,  or the whole flash), but not
++ * individual blocks that our mtd layout requires.  Changing the
++ * mtd layout at this point in the game, just to accomodate the
++ * flash locking/unlocking API, would not provide any benefit to
++ * justify the risk (however small it is) of such a change.
++ *
++ * So, we just hack the API and lock/unlock the whole flash regardless
++ * of which blocks are requested to be locked/unlocked.
++ */
++static int hack_lock(struct spi_nor *nor, loff_t ofs, uint64_t len)
++{
++	int status_old, status_new;
++	u8 mask = SR_SRWD | SR_TB | SR_BP2 | SR_BP1 | SR_BP0;
++
++	status_old = read_sr(nor);
++
++	if (status_old < 0)
++		return status_old;
++	// SRWD = 1, BP[3..0] = 0111 -> lock the whole flash
++	status_new = (status_old & ~mask) | (SR_SRWD | SR_BP2 | SR_BP1 | SR_BP0);
++
++	return write_sr_and_check(nor, status_new, mask);
++}
++
++/*
++ * Unlock a region of the flash. See hack_lock() for more info
++ *
++ * Returns negative on errors, 0 on success.
++ */
++static int hack_unlock(struct spi_nor *nor, loff_t ofs, uint64_t len)
++{
++	int status_old, status_new;
++	u8 mask = SR_SRWD | SR_TB | SR_BP2 | SR_BP1 | SR_BP0;
++
++	status_old = read_sr(nor);
++
++	if (status_old < 0)
++		return status_old;
++	// SRWD = 0, BP[3..0] = 0000 -> unlock the whole flash
++	status_new = (status_old & ~mask);
++
++	return write_sr_and_check(nor, status_new, mask);
++}
++
++/*
++ * Check if a region of the flash is (completely) locked. See hack_lock()
++ * for more info.
++ *
++ * Returns 1 if entire region is locked, 0 if any portion is unlocked, and
++ * negative on errors.
++ */
++static int hack_is_locked(struct spi_nor *nor, loff_t ofs, uint64_t len)
++{
++	int status;
++	u8 mask = SR_SRWD | SR_TB | SR_BP2 | SR_BP1 | SR_BP0;
++
++	status = read_sr(nor);
++
++	if (status < 0)
++		return status;
++	// SRWD = 1, BP[3..0] = 0111 -> whole flash is locked (according to our definition)
++	return (status & mask) == (SR_SRWD | SR_BP2 | SR_BP1 | SR_BP0);
++}
++
+ static int spi_nor_lock(struct mtd_info *mtd, loff_t ofs, uint64_t len)
+ {
+ 	struct spi_nor *nor = mtd_to_spi_nor(mtd);
+@@ -2885,6 +2958,12 @@ int spi_nor_scan(struct spi_nor *nor, const char *name,
+ 		nor->flash_is_locked = stm_is_locked;
+ 	}
+ 
++	if (JEDEC_MFR(info) == 0x9D || JEDEC_MFR(info) == 0xC2) {
++		nor->flash_lock = hack_lock;
++		nor->flash_unlock = hack_unlock;
++		nor->flash_is_locked = hack_is_locked;
++	}
++
+ 	if (nor->flash_lock && nor->flash_unlock && nor->flash_is_locked) {
+ 		mtd->_lock = spi_nor_lock;
+ 		mtd->_unlock = spi_nor_unlock;
+-- 
+2.24.1
+

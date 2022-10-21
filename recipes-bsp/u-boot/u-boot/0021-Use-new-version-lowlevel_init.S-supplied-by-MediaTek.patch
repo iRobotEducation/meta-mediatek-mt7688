@@ -1,0 +1,176 @@
+From b0904b9ae68d45e288d0754b054c180a031c2dad Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Wed, 24 Jun 2020 19:03:24 -0400
+Subject: [PATCH] Use new version lowlevel_init.S supplied by MediaTek
+
+---
+ arch/mips/mach-mt7620/lowlevel_init.S | 129 ++++++++------------------
+ 1 file changed, 40 insertions(+), 89 deletions(-)
+
+diff --git a/arch/mips/mach-mt7620/lowlevel_init.S b/arch/mips/mach-mt7620/lowlevel_init.S
+index 5ed9e63800..60754584fe 100644
+--- a/arch/mips/mach-mt7620/lowlevel_init.S
++++ b/arch/mips/mach-mt7620/lowlevel_init.S
+@@ -24,45 +24,6 @@
+ 
+ #define DELAY_USEC(us)		((us) / 100)
+ 
+-#define DDR_CFG1_CHIP_WIDTH_MASK (0x3 << 16)
+-#define DDR_CFG1_BUS_WIDTH_MASK	(0x3 << 12)
+-
+-#if defined(CONFIG_ONBOARD_DDR2_SIZE_256MBIT)
+-#define DDR_CFG1_SIZE_VAL	0x222e2323
+-#define DDR_CFG4_SIZE_VAL	7
+-#endif
+-#if defined(CONFIG_ONBOARD_DDR2_SIZE_512MBIT)
+-#define DDR_CFG0_VAL		0x249AA5D9
+-#define DDR_CFG1_SIZE_VAL	0x22322323
+-#define DDR_CFG4_SIZE_VAL	9
+-#define DDR_CFG2_CAS_LATENCY	5
+-#endif
+-#if defined(CONFIG_ONBOARD_DDR2_SIZE_1024MBIT)
+-#define DDR_CFG1_SIZE_VAL	0x22362323
+-#define DDR_CFG4_SIZE_VAL	9
+-#endif
+-#if defined(CONFIG_ONBOARD_DDR2_SIZE_2048MBIT)
+-#define DDR_CFG1_SIZE_VAL	0x223a2323
+-#define DDR_CFG4_SIZE_VAL	9
+-#endif
+-
+-#if defined(CONFIG_ONBOARD_DDR2_CHIP_WIDTH_8BIT)
+-#define DDR_CFG1_CHIP_WIDTH_VAL	(0x1 << 16)
+-#endif
+-#if defined(CONFIG_ONBOARD_DDR2_CHIP_WIDTH_16BIT)
+-#define DDR_CFG1_CHIP_WIDTH_VAL	(0x2 << 16)
+-#endif
+-
+-#if defined(CONFIG_ONBOARD_DDR2_BUS_WIDTH_16BIT)
+-#define DDR_CFG1_BUS_WIDTH_VAL	(0x2 << 12)
+-#endif
+-#if defined(CONFIG_ONBOARD_DDR2_BUS_WIDTH_32BIT)
+-#define DDR_CFG1_BUS_WIDTH_VAL	(0x3 << 12)
+-#endif
+-
+-#ifndef DDR_CFG2_CAS_LATENCY
+-#define DDR_CFG2_CAS_LATENCY 4
+-#endif
+ 	.set noreorder
+ 
+ LEAF(lowlevel_init)
+@@ -255,68 +216,45 @@ SET_PAD_CFG:
+ 	sw	t2, 0x34(s0)
+ 	nop
+ 
+-	/*
+-	 * DDR initialization: wait til reg DDR_CFG1 bit 21 equal to 1 (ready)
+-	 */
+-DDR_READY:
+-	li	t1, DDR_CFG1_REG
+-	lw	t0, 0(t1)
+-	nop
+-	and	t2, t0, BIT(21)
+-	beqz	t2, DDR_READY
++	li	t0, DELAY_USEC(200 + 40)
++	li	t1, 0x1
++1:
++	sub	t0, t0, t1
++	bnez	t0, 1b
+ 	nop
+ 
+ 	/*
+ 	 * DDR initialization
+ 	 *
+-	 * Only DDR2 supported right now. DDR1 support can be added, once
++	 * Only DDR2 supported right now. DDR2 support can be added, once
+ 	 * boards using it will get added to mainline U-Boot.
+ 	 */
+-#ifdef DDR_CFG0_VAL
+-	li	t6, DDR_CFG0_VAL
+-	li	t5, DDR_CFG0_REG
+-	sw	t6, 0(t5)
+-	nop
+-#endif
+-	li	t1, DDR_CFG2_REG
+-	lw	t0, 0(t1)
+-	nop
+-	and	t0, ~BIT(30)
+-	and	t0, ~(7 << 4)
+-	or	t0, (DDR_CFG2_CAS_LATENCY << 4)
+-	or	t0, BIT(30)
+-	or	t0, BIT(11)
+-	sw	t0, 0(t1)
+-	nop
++	la	t0, DDR2_CFG_TBL
+ 
+-	li	t1, DDR_CFG3_REG
+-	lw	t2, 0(t1)
+-	/* Disable ODT; reference board ok, ev board fail */
+-	and	t2, ~BIT(6)
+-	or	t2, BIT(2)
+-	li	t0, DDR_CFG4_REG
+-	lw	t1, 0(t0)
+-	li	t2, ~(0x01f | 0x0f0)
+-	and	t1, t1, t2
+-	ori	t1, t1, DDR_CFG4_SIZE_VAL
+-	sw	t1, 0(t0)
+-	nop
++	lw	t1, 0x08(t0)
++	sw	t1, 0x48(s1)	/* DDR_CFG2 */
+ 
+-	/*
+-	 * DDR initialization: config size and width on reg DDR_CFG1
+-	 */
+-	li	t6, DDR_CFG1_SIZE_VAL
++	lw	t1, 0x0c(t0)
++	sw	t1, 0x4c(s1)	/* DDR_CFG3 */
+ 
+-	and	t6, ~DDR_CFG1_CHIP_WIDTH_MASK
+-	or	t6, DDR_CFG1_CHIP_WIDTH_VAL
++	lw	t1, 0x10(t0)
++	sw	t1, 0x50(s1)	/* DDR_CFG4 */
+ 
+-	/* CONFIG DDR_CFG1[13:12] about TOTAL WIDTH */
+-	and	t6, ~DDR_CFG1_BUS_WIDTH_MASK
+-	or	t6, DDR_CFG1_BUS_WIDTH_VAL
++	li	t1, 0x8282
++	sw	t1, 0x60(s1)	/* DDR_DQ_DLY */
+ 
+-	li	t5, DDR_CFG1_REG
+-	sw	t6, 0(t5)
+-	nop
++	li	t1, 0x8383
++	sw	t1, 0x64(s1)	/* DDR_DQS_DLY */
++
++	lw	t1, 0x00(t0)
++	sw	t1, 0x40(s1)	/* DDR_CFG0 */
++
++	lw	t1, 0x04(t0)
++	li	t2, (3 << 16)
++	or	t1, t1, t2
++	li	t2, (1 << 16)	/* IND_SDRAM_WIDTH = 16-bit */
++	xor	t1, t1, t2
++	sw	t1, 0x44(s1)	/* DDR_CFG1 */
+ 
+ 	/*
+ 	 * DDR: enable self auto refresh for power saving
+@@ -336,4 +274,17 @@ DDR_READY:
+ 
+ 	jr	ra
+ 	nop
++
++DDR2_CFG_TBL:
++#if defined(CONFIG_ONBOARD_DDR2_SIZE_256MBIT)
++	.word	0x2519E2E5, 0x222E2323, 0x68000C43, 0x00000452, 0x0000000A
++#elif defined(CONFIG_ONBOARD_DDR2_SIZE_512MBIT)
++	.word	0x249AA2E5, 0x22322323, 0x68000C43, 0x00000452, 0x0000000A
++#elif defined(CONFIG_ONBOARD_DDR2_SIZE_1024MBIT)
++	.word	0x249B42E5, 0x22362323, 0x68000C43, 0x00000452, 0x0000000A
++#elif defined(CONFIG_ONBOARD_DDR2_SIZE_2048MBIT)
++	.word	0x249CE2E5, 0x223A2323, 0x68000C43, 0x00000452, 0x0000000A
++#else
++#error	Invalid DDR2 size configuration
++#endif
+ 	END(lowlevel_init)
+-- 
+2.24.1
+

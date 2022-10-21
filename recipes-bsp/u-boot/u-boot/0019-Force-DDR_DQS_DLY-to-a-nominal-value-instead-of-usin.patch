@@ -1,0 +1,43 @@
+From 64fcabe4a23571419a1751b4d22f0582cfbb2f7c Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Sun, 21 Jun 2020 17:45:03 -0400
+Subject: [PATCH] Force DDR_DQS_DLY to a nominal value instead of using a bogus
+ value.
+
+...and record the calculated value in a spare register that can be
+probed by user space code so as to track the incidence of bugus values
+calculated by ddr_calibrate().
+---
+ arch/mips/mach-mt7620/ddr_calibrate.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/arch/mips/mach-mt7620/ddr_calibrate.c b/arch/mips/mach-mt7620/ddr_calibrate.c
+index 5fd9bec5cb..65e0e43c05 100644
+--- a/arch/mips/mach-mt7620/ddr_calibrate.c
++++ b/arch/mips/mach-mt7620/ddr_calibrate.c
+@@ -300,7 +300,21 @@ DQS_CAL:
+ 	}
+ 	reg = (coarse_dqs[1] << 12) | (fine_dqs[1] << 8) |
+ 		(coarse_dqs[0] << 4) | fine_dqs[0];
+-
++        /* Save the calculated reg value in the MEMO1 register (0x10000068) so it can be read by software later */
++	writel(reg, (void *)MT76XX_SYSCTL_BASE + 0x68);
++	/* Save the 4 values that were used to construct reg */
++	writel(coarse_dqs[0], (void *)MT76XX_SYSCTL_BASE + 0x70);
++	writel(fine_dqs[0],   (void *)MT76XX_SYSCTL_BASE + 0x74);
++	writel(coarse_dqs[1], (void *)MT76XX_SYSCTL_BASE + 0x78);
++	writel(fine_dqs[1],   (void *)MT76XX_SYSCTL_BASE + 0x7C);
++	/* Sanity check the dqs strobe values, and use a nominal value if they are too far out of range */
++	if ((coarse_dqs[0] >= 11) ||
++	    (coarse_dqs[0] <=  2) ||
++	    (coarse_dqs[1] >= 11) ||
++	    (coarse_dqs[1] <=  2)) {
++		/* The dynamic calibration is too far off, use a nominal value. */
++		reg = 0x8787;
++	}
+ 	clrbits_le32((void *)MT76XX_MEMCTRL_BASE + 0x10, BIT(4));
+ 	writel(reg, (void *)MT76XX_MEMCTRL_BASE + 0x64);
+ 	writel(ddr_cfg2_reg, (void *)MT76XX_MEMCTRL_BASE + 0x48);
+-- 
+2.24.1
+

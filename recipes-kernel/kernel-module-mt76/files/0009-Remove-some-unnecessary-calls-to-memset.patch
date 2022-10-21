@@ -1,0 +1,72 @@
+From f7d1b8de962bb0839fc7a475bc9d555df1e826c4 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 5 May 2020 17:10:55 -0400
+Subject: [PATCH] Remove some unnecessary calls to memset
+
+From mediatek on May 5, 2020:
+
+Attempt to fix Wi-Fi calibration test fixture kernel panics during
+associated with iwpriv e2p commands.
+---
+ mt_wifi/embedded/common/mlme.c        | 4 +++-
+ mt_wifi/embedded/os/linux/sta_ioctl.c | 8 ++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/mt_wifi/embedded/common/mlme.c b/mt_wifi/embedded/common/mlme.c
+index f7064f0..ff16550 100644
+--- a/mt_wifi/embedded/common/mlme.c
++++ b/mt_wifi/embedded/common/mlme.c
+@@ -1677,7 +1677,9 @@ VOID MlmePeriodicExec(
+     /* Following is the TxOP scenario, monitor traffic in every second */
+     if ((pAd->Mlme.PeriodicRound % 10) == 0)
+     {
+-        TxOPUpdatingAlgo(pAd);
++        if(INFRA_ON(pAd)) {
++            TxOPUpdatingAlgo(pAd);
++        }
+     }
+ 
+ 	if ((pAd->Mlme.PeriodicRound % 1) == 0)
+diff --git a/mt_wifi/embedded/os/linux/sta_ioctl.c b/mt_wifi/embedded/os/linux/sta_ioctl.c
+index df31ba3..32edb0e 100755
+--- a/mt_wifi/embedded/os/linux/sta_ioctl.c
++++ b/mt_wifi/embedded/os/linux/sta_ioctl.c
+@@ -1857,7 +1857,7 @@ rt_private_get_statistics(struct net_device *dev, struct iw_request_info *info,
+         return -EIO;
+     }
+     
+-    memset(extra, 0x00, IW_PRIV_SIZE_MASK);
++    //memset(extra, 0x00, IW_PRIV_SIZE_MASK);
+ 
+ 
+ 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_IW_GET_STATISTICS, 0,
+@@ -1897,7 +1897,7 @@ rt_private_show(struct net_device *dev, struct iw_request_info *info,
+ 		wrq->length = 0;
+ 		return -EIO;
+ 	}
+-	memset(extra, 0x00, IW_PRIV_SIZE_MASK);
++	//memset(extra, 0x00, IW_PRIV_SIZE_MASK);
+     
+     
+ 	wrqin.u.data.pointer = wrq->pointer;
+@@ -2369,7 +2369,7 @@ rt_private_ioctl_bbp(struct net_device *dev, struct iw_request_info *info,
+ 	GET_PAD_FROM_NET_DEV(pAd, dev);	
+ 
+ 
+-	memset(extra, 0x00, IW_PRIV_SIZE_MASK);
++	//memset(extra, 0x00, IW_PRIV_SIZE_MASK);
+ 
+ 	wrqin.u.data.pointer = wrq->pointer;
+ 	wrqin.u.data.length = wrq->length;
+@@ -2398,7 +2398,7 @@ rt_private_ioctl_e2p(struct net_device *dev, struct iw_request_info *info,
+ 	GET_PAD_FROM_NET_DEV(pAd, dev);	
+ 
+ 
+-	memset(extra, 0x00, IW_PRIV_SIZE_MASK);
++	//memset(extra, 0x00, IW_PRIV_SIZE_MASK);
+ 
+ 	wrqin.u.data.pointer = wrq->pointer;
+ 	wrqin.u.data.length = wrq->length;
+-- 
+2.24.1
+

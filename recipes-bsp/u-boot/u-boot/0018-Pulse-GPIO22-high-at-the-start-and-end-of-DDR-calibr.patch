@@ -1,0 +1,64 @@
+From e6ef3219560fa282d3b3afd622c0a78c556519ea Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Sun, 21 Jun 2020 17:42:00 -0400
+Subject: [PATCH] Pulse GPIO22 high at the start and end of DDR calibration.
+
+We used to set GPIO28 low very early on in the start process (as part of
+a previous patch).  Since nobody was using that capability anymore, and
+to minimize the disruption to the code, we now set GPIO22 low very early
+on, and pulse it high in the ddr calibration function.
+---
+ arch/mips/cpu/start.S                 |  5 +++--
+ arch/mips/mach-mt7620/ddr_calibrate.c | 10 ++++++++++
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/arch/mips/cpu/start.S b/arch/mips/cpu/start.S
+index bc215544a4..39c83ab595 100644
+--- a/arch/mips/cpu/start.S
++++ b/arch/mips/cpu/start.S
+@@ -87,13 +87,14 @@
+ 
+ ENTRY(_start)
+ 	mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
++	/* Configure GPIO22 as an output and drive it low to assist HW debugging issues */
+ 	li	s0, CKSEG1ADDR(MT76XX_SYSCTL_BASE + 0x600)
+ 	lw	t1, 0x00(s0)
+-	li	t2, BIT(28)
++	li	t2, BIT(22)
+ 	or	t1, t2
+ 	sw	t1, 0x00(s0)
+ 	lw	t1, 0x20(s0)
+-	li	t2,~BIT(28)
++	li	t2,~BIT(22)
+ 	and	t1, t2
+ 	/* U-Boot entry point */
+ 	b	reset
+diff --git a/arch/mips/mach-mt7620/ddr_calibrate.c b/arch/mips/mach-mt7620/ddr_calibrate.c
+index 75763c4528..5fd9bec5cb 100644
+--- a/arch/mips/mach-mt7620/ddr_calibrate.c
++++ b/arch/mips/mach-mt7620/ddr_calibrate.c
+@@ -144,6 +144,11 @@ void ddr_calibrate(void)
+ 	u32 val;
+ 	u32 fdiv = 0, frac = 0;
+ 
++	/* Pulse GPIO22 high for >= 100us as a 'scope trigger before running calibration */
++	setbits_le32((void *)MT76XX_SYSCTL_BASE + 0x620, BIT(22));
++	udelay(100);
++	clrbits_le32((void *)MT76XX_SYSCTL_BASE + 0x620, BIT(22));
++
+ 	/* Setup clock to run at full speed */
+ 	val = readl((void *)MT76XX_DYN_CFG0_REG);
+ 	fdiv = (u32)((val >> 8) & 0x0F);
+@@ -305,4 +310,9 @@ DQS_CAL:
+ 		debug("[%02X%02X%02X%02X]", min_coarse_dqs[i],
+ 		      min_fine_dqs[i], max_coarse_dqs[i], max_fine_dqs[i]);
+ 	debug("\nDDR Calibration DQS reg = %08X\n", reg);
++
++	/* Pulse GPIO22 high for >= 100us after running calibration */
++	setbits_le32((void *)MT76XX_SYSCTL_BASE + 0x620, BIT(22));
++	udelay(100);
++	clrbits_le32((void *)MT76XX_SYSCTL_BASE + 0x620, BIT(22));
+ }
+-- 
+2.24.1
+

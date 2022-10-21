@@ -1,0 +1,65 @@
+From 5ecb37977a17f2b9756fdb69423b1ca376c68768 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Mon, 16 Sep 2019 13:52:55 -0400
+Subject: [PATCH] rsa-verify: Use debug() instead of printf().
+
+Signed-off-by: Patrick Doyle <pdoyle@irobot.com>
+---
+ lib/rsa/rsa-verify.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/lib/rsa/rsa-verify.c b/lib/rsa/rsa-verify.c
+index 287fcc4d..86c12e75 100644
+--- a/lib/rsa/rsa-verify.c
++++ b/lib/rsa/rsa-verify.c
+@@ -204,14 +204,14 @@ int padding_pss_verify(struct image_sign_info *info,
+ 	salt = malloc(salt_len);
+ 	hprime = malloc(hash_len);
+ 	if (!masked_db || !h || !db_mask || !db || !salt || !hprime) {
+-		printf("%s: can't allocate some buffer\n", __func__);
++		debug("%s: can't allocate some buffer\n", __func__);
+ 		ret = -ENOMEM;
+ 		goto out;
+ 	}
+ 
+ 	/* step 4: check if the last byte is 0xbc */
+ 	if (msg[msg_len - 1] != 0xbc) {
+-		printf("%s: invalid pss padding (0xbc is missing)\n", __func__);
++		debug("%s: invalid pss padding (0xbc is missing)\n", __func__);
+ 		ret = -EINVAL;
+ 		goto out;
+ 	}
+@@ -223,8 +223,8 @@ int padding_pss_verify(struct image_sign_info *info,
+ 	/* step 6 */
+ 	leftmost_mask = (0xff >> (8 - leftmost_bits)) << (8 - leftmost_bits);
+ 	if (masked_db[0] & leftmost_mask) {
+-		printf("%s: invalid pss padding ", __func__);
+-		printf("(leftmost bit of maskedDB not zero)\n");
++		debug("%s: invalid pss padding ", __func__);
++		debug("(leftmost bit of maskedDB not zero)\n");
+ 		ret = -EINVAL;
+ 		goto out;
+ 	}
+@@ -241,8 +241,8 @@ int padding_pss_verify(struct image_sign_info *info,
+ 
+ 	/* step 10 */
+ 	if (db[0] != 0x01) {
+-		printf("%s: invalid pss padding ", __func__);
+-		printf("(leftmost byte of db isn't 0x01)\n");
++		debug("%s: invalid pss padding ", __func__);
++		debug("(leftmost byte of db isn't 0x01)\n");
+ 		ret = EINVAL;
+ 		goto out;
+ 	}
+@@ -320,7 +320,7 @@ static int rsa_verify_key(struct image_sign_info *info,
+ #if !defined(USE_HOSTCC)
+ 	ret = uclass_get_device(UCLASS_MOD_EXP, 0, &mod_exp_dev);
+ 	if (ret) {
+-		printf("RSA: Can't find Modular Exp implementation\n");
++		debug("RSA: Can't find Modular Exp implementation\n");
+ 		return -EINVAL;
+ 	}
+ 
+-- 
+2.24.1
+

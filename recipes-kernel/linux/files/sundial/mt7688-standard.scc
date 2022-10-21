@@ -1,0 +1,9 @@
+define KMACHINE sundial7688
+
+define KARCH mips
+
+# include ktypes/standard/standard.scc nopatch
+define KTYPE standard/base
+branch sundial7688
+
+include mt7688.scc

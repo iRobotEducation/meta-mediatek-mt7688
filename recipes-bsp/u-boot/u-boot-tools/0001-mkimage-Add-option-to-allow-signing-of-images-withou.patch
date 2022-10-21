@@ -1,0 +1,223 @@
+From a86e33e3984014b46af4650143e706f4a1bbffd1 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 10 Sep 2019 14:53:57 -0400
+Subject: [PATCH] mkimage: Add option to allow signing of images without data
+ properties (and associated hash nodes).
+
+Add '-Z' option to mkimage, which allows images consisting of nodes
+without data to be signed.  Such images might contain public keys to be
+added to to the device tree, or perhaps some other properties to be used
+in some other manner someday.
+---
+ include/image.h    |  2 +-
+ tools/fit_image.c  |  1 +
+ tools/image-host.c | 32 +++++++++++++++++++-------------
+ tools/imagetool.h  |  1 +
+ tools/mkimage.c    |  8 ++++++--
+ 5 files changed, 28 insertions(+), 16 deletions(-)
+
+diff --git a/include/image.h b/include/image.h
+index 765ffec..e5bb459 100644
+--- a/include/image.h
++++ b/include/image.h
+@@ -1030,7 +1030,7 @@ int fit_set_timestamp(void *fit, int noffset, time_t timestamp);
+  *     libfdt error code, on failure
+  */
+ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
+-			      const char *comment, int require_keys,
++			      const char *comment, int require_keys, int no_data_ok,
+ 			      const char *engine_id, const char *cmdname);
+ 
+ int fit_image_verify_with_data(const void *fit, int image_noffset,
+diff --git a/tools/fit_image.c b/tools/fit_image.c
+index 4b62635..24836ab 100644
+--- a/tools/fit_image.c
++++ b/tools/fit_image.c
+@@ -60,6 +60,7 @@ static int fit_add_file_data(struct image_tool_params *params, size_t size_inc,
+ 		ret = fit_add_verification_data(params->keydir, dest_blob, ptr,
+ 						params->comment,
+ 						params->require_keys,
++                                                params->no_data_ok,
+ 						params->engine_id,
+ 						params->cmdname);
+ 	}
+diff --git a/tools/image-host.c b/tools/image-host.c
+index 88b3295..0d5cb89 100644
+--- a/tools/image-host.c
++++ b/tools/image-host.c
+@@ -300,12 +300,14 @@ static int fit_image_process_sig(const char *keydir, void *keydest,
+  * @image_noffset: Requested component image node
+  * @comment:	Comment to add to signature nodes
+  * @require_keys: Mark all keys as 'required'
++ * @no_data_ok: Don't complain (and don't fail) if we cannot find a data property for the images.
+  * @engine_id:	Engine to use for signing
+  * @return: 0 on success, <0 on failure
+  */
+ int fit_image_add_verification_data(const char *keydir, void *keydest,
+ 		void *fit, int image_noffset, const char *comment,
+-		int require_keys, const char *engine_id, const char *cmdname)
++		int require_keys, int no_data_ok, const char *engine_id,
++		const char *cmdname)
+ {
+ 	const char *image_name;
+ 	const void *data;
+@@ -314,6 +316,8 @@ int fit_image_add_verification_data(const char *keydir, void *keydest,
+ 
+ 	/* Get image data and data length */
+ 	if (fit_image_get_data(fit, image_noffset, &data, &size)) {
++		if (no_data_ok)
++			return 0;
+ 		printf("Can't get image data/size\n");
+ 		return -1;
+ 	}
+@@ -406,7 +410,8 @@ static const char *fit_config_get_image_list(void *fit, int noffset,
+ }
+ 
+ static int fit_config_get_hash_list(void *fit, int conf_noffset,
+-				    int sig_offset, struct strlist *node_inc)
++				    int sig_offset, struct strlist *node_inc,
++				    int no_data_ok)
+ {
+ 	int allow_missing;
+ 	const char *prop, *iname, *end;
+@@ -480,7 +485,7 @@ static int fit_config_get_hash_list(void *fit, int conf_noffset,
+ 			hash_count++;
+ 		}
+ 
+-		if (!hash_count) {
++		if (!hash_count && !no_data_ok) {
+ 			printf("Failed to find any hash nodes in configuration '%s/%s' image '%s' - without these it is not possible to verify this image\n",
+ 			       conf_name, sig_name, iname);
+ 			return -ENOMSG;
+@@ -509,7 +514,7 @@ err_path:
+ }
+ 
+ static int fit_config_get_data(void *fit, int conf_noffset, int noffset,
+-		struct image_region **regionp, int *region_countp,
++		int no_data_ok, struct image_region **regionp, int *region_countp,
+ 		char **region_propp, int *region_proplen)
+ {
+ 	char * const exc_prop[] = {"data"};
+@@ -527,7 +532,7 @@ static int fit_config_get_data(void *fit, int conf_noffset, int noffset,
+ 	debug("%s: conf='%s', sig='%s'\n", __func__, conf_name, sig_name);
+ 
+ 	/* Get a list of nodes we want to hash */
+-	ret = fit_config_get_hash_list(fit, conf_noffset, noffset, &node_inc);
++	ret = fit_config_get_hash_list(fit, conf_noffset, noffset, &node_inc, no_data_ok);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -583,7 +588,7 @@ static int fit_config_get_data(void *fit, int conf_noffset, int noffset,
+ static int fit_config_process_sig(const char *keydir, void *keydest,
+ 		void *fit, const char *conf_name, int conf_noffset,
+ 		int noffset, const char *comment, int require_keys,
+-		const char *engine_id, const char *cmdname)
++		int no_data_ok, const char *engine_id, const char *cmdname)
+ {
+ 	struct image_sign_info info;
+ 	const char *node_name;
+@@ -596,7 +601,7 @@ static int fit_config_process_sig(const char *keydir, void *keydest,
+ 	int ret;
+ 
+ 	node_name = fit_get_name(fit, noffset, NULL);
+-	if (fit_config_get_data(fit, conf_noffset, noffset, &region,
++	if (fit_config_get_data(fit, conf_noffset, noffset, no_data_ok, &region,
+ 				&region_count, &region_prop, &region_proplen))
+ 		return -1;
+ 
+@@ -647,7 +652,8 @@ static int fit_config_process_sig(const char *keydir, void *keydest,
+ 
+ static int fit_config_add_verification_data(const char *keydir, void *keydest,
+ 		void *fit, int conf_noffset, const char *comment,
+-		int require_keys, const char *engine_id, const char *cmdname)
++		int require_keys, int no_data_ok, const char *engine_id,
++		const char *cmdname)
+ {
+ 	const char *conf_name;
+ 	int noffset;
+@@ -666,7 +672,7 @@ static int fit_config_add_verification_data(const char *keydir, void *keydest,
+ 			     strlen(FIT_SIG_NODENAME))) {
+ 			ret = fit_config_process_sig(keydir, keydest,
+ 				fit, conf_name, conf_noffset, noffset, comment,
+-				require_keys, engine_id, cmdname);
++				require_keys, no_data_ok, engine_id, cmdname);
+ 		}
+ 		if (ret)
+ 			return ret;
+@@ -676,7 +682,7 @@ static int fit_config_add_verification_data(const char *keydir, void *keydest,
+ }
+ 
+ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
+-			      const char *comment, int require_keys,
++			      const char *comment, int require_keys, int no_data_ok,
+ 			      const char *engine_id, const char *cmdname)
+ {
+ 	int images_noffset, confs_noffset;
+@@ -700,8 +706,8 @@ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
+ 		 * i.e. component image node.
+ 		 */
+ 		ret = fit_image_add_verification_data(keydir, keydest,
+-				fit, noffset, comment, require_keys, engine_id,
+-				cmdname);
++				fit, noffset, comment, require_keys, no_data_ok,
++				engine_id, cmdname);
+ 		if (ret)
+ 			return ret;
+ 	}
+@@ -724,7 +730,7 @@ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
+ 	     noffset = fdt_next_subnode(fit, noffset)) {
+ 		ret = fit_config_add_verification_data(keydir, keydest,
+ 						       fit, noffset, comment,
+-						       require_keys,
++						       require_keys, no_data_ok,
+ 						       engine_id, cmdname);
+ 		if (ret)
+ 			return ret;
+diff --git a/tools/imagetool.h b/tools/imagetool.h
+index 7147142..4186a3f 100644
+--- a/tools/imagetool.h
++++ b/tools/imagetool.h
+@@ -65,6 +65,7 @@ struct image_tool_params {
+ 	const char *keydir;	/* Directory holding private keys */
+ 	const char *keydest;	/* Destination .dtb for public key */
+ 	const char *comment;	/* Comment to add to signature node */
++	bool no_data_ok;	/* Don't generate error if fit images are missing data property (and hash nodes) */
+ 	int require_keys;	/* 1 to mark signing keys as 'required' */
+ 	int file_size;		/* Total size of output file */
+ 	int orig_file_size;	/* Original size for file before padding */
+diff --git a/tools/mkimage.c b/tools/mkimage.c
+index ea5ed54..8c7571e 100644
+--- a/tools/mkimage.c
++++ b/tools/mkimage.c
+@@ -105,7 +105,8 @@ static void usage(const char *msg)
+ 		"          -F => re-sign existing FIT image\n"
+ 		"          -p => place external data at a static position\n"
+ 		"          -r => mark keys used as 'required' in dtb\n"
+-		"          -N => engine to use for signing (pkcs11)\n");
++		"          -N => engine to use for signing (pkcs11)\n"
++                "          -Z => images do not require data blobs\n");
+ #else
+ 	fprintf(stderr,
+ 		"Signing / verified boot not supported (CONFIG_FIT_SIGNATURE undefined)\n");
+@@ -143,7 +144,7 @@ static void process_args(int argc, char **argv)
+ 	int opt;
+ 
+ 	while ((opt = getopt(argc, argv,
+-			     "a:A:b:c:C:d:D:e:Ef:Fk:i:K:ln:N:p:O:rR:qsT:vVx")) != -1) {
++			     "a:A:b:c:C:d:D:e:Ef:Fk:i:K:ln:N:p:O:rR:qsT:vVxZ")) != -1) {
+ 		switch (opt) {
+ 		case 'a':
+ 			params.addr = strtoull(optarg, &ptr, 16);
+@@ -278,6 +279,9 @@ static void process_args(int argc, char **argv)
+ 		case 'x':
+ 			params.xflag++;
+ 			break;
++                case 'Z':
++			params.no_data_ok = true;
++			break;
+ 		default:
+ 			usage("Invalid option");
+ 		}
+-- 
+2.7.4
+

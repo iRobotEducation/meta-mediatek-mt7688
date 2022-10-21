@@ -1,0 +1,267 @@
+diff --git a/mt_wifi/ate/ate_agent.c b/mt_wifi/ate/ate_agent.c
+index 65301b8..ff8efbe 100755
+--- a/mt_wifi/ate/ate_agent.c
++++ b/mt_wifi/ate/ate_agent.c
+@@ -1191,7 +1191,7 @@ INT32 ATEInit(RTMP_ADAPTER *pAd)
+ 	ATECtrl->TxStatus = 0;
+ #endif
+ 
+-	printk("%s: Init timer\n", __FUNCTION__ );
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Init timer\n", __FUNCTION__));
+ 	if( ATECtrl->periodic_work == NULL )
+ 	{
+ 		ATECtrl->periodic_work = kmalloc(sizeof(struct ATEPeriodicExec_work), GFP_KERNEL);
+@@ -1215,7 +1215,7 @@ INT32 ATEExit(RTMP_ADAPTER *pAd)
+ 	INT32 Ret = 0;
+ 	ATE_CTRL *ATECtrl = &(pAd->ATECtrl);
+ 
+-	printk("%s:\n", __FUNCTION__ );
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s:\n", __FUNCTION__));
+ 	if( ATECtrl->periodic_work )
+ 	{
+ 		kfree( ATECtrl->periodic_work );
+diff --git a/mt_wifi/chips/mt7628.c b/mt_wifi/chips/mt7628.c
+index c951b63..dfd6efd 100755
+--- a/mt_wifi/chips/mt7628.c
++++ b/mt_wifi/chips/mt7628.c
+@@ -484,7 +484,7 @@ void mt7628_get_tx_pwr_info(RTMP_ADAPTER *pAd)
+ 
+     cap->tx_1_target_pwr_g_band = (is_empty) ? TX_TARGET_PWR_DEFAULT_VALUE : (value & TX1_G_BAND_TARGET_PWR_MASK);
+ 
+-    printk ("tssi_1_target_pwr_g_band = %d\n", cap->tx_1_target_pwr_g_band);
++    MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("tssi_1_target_pwr_g_band = %d\n", cap->tx_1_target_pwr_g_band));
+ 
+     /* Read power offset (channel delta) */
+     if (is_empty) {
+@@ -1200,9 +1200,9 @@ void mt7628_set_ed_cca(RTMP_ADAPTER *pAd, BOOLEAN enable)
+ 		
+ #ifdef SMART_CARRIER_SENSE_SUPPORT		
+ 		pAd->SCSCtrl.EDCCA_Status = 0;
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: TURN OFF EDCCA  mac 0x10618 = 0x%x, EDCCA_Status=%d\n", __FUNCTION__, macVal, pAd->SCSCtrl.EDCCA_Status));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: TURN OFF EDCCA  mac 0x10618 = 0x%x, EDCCA_Status=%d\n", __FUNCTION__, macVal, pAd->SCSCtrl.EDCCA_Status));
+ #else
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: TURN OFF EDCCA  mac 0x10618 = 0x%x\n", __FUNCTION__, macVal));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: TURN OFF EDCCA  mac 0x10618 = 0x%x\n", __FUNCTION__, macVal));
+ #endif /* SMART_CARRIER_SENSE_SUPPORT */
+ 		
+ 		
+diff --git a/mt_wifi/embedded/common/cmm_info.c b/mt_wifi/embedded/common/cmm_info.c
+index c8fd345..ba843f8 100755
+--- a/mt_wifi/embedded/common/cmm_info.c
++++ b/mt_wifi/embedded/common/cmm_info.c
+@@ -2703,7 +2703,7 @@ VOID RTMPSetPhyMode(RTMP_ADAPTER *pAd, ULONG phymode)
+ #ifdef CONFIG_STA_SUPPORT
+ 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
+ 	{
+-		printk("%s: Update for STA\n", __FUNCTION__);
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Update for STA\n", __FUNCTION__));
+ 		MlmeUpdateTxRates(pAd, FALSE, BSS0);
+ 	}
+ #endif /* CONFIG_STA_SUPPORT */
+@@ -2727,10 +2727,10 @@ VOID RTMPSetPhyMode(RTMP_ADAPTER *pAd, ULONG phymode)
+ 	pAd->cfg80211_ctrl.P2pExtRateLen  = 0;
+ 
+ #ifdef RT_CFG80211_P2P_CONCURRENT_DEVICE
+-    printk("%s: Update for AP\n", __FUNCTION__);
++    MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Update for AP\n", __FUNCTION__));
+     MlmeUpdateTxRates(pAd, FALSE, MAIN_MBSSID + MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO);
+ 
+-    printk("%s: Update for APCLI\n", __FUNCTION__);
++    MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Update for APCLI\n", __FUNCTION__));
+     MlmeUpdateTxRates(pAd, FALSE, MAIN_MBSSID + MIN_NET_DEVICE_FOR_APCLI);
+ #endif /* RT_CFG80211_P2P_CONCURRENT_DEVICE */
+ #endif /* RT_CFG80211_P2P_SUPPORT */
+@@ -6081,8 +6081,8 @@ static INT dump_ps_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
+ 			printk("\t%-6u", tr_entry->high_pkt_cnt);
+ 			printk("\t%-6u", tr_entry->high_pkt_drop_cnt);
+ #else /* DATA_QUEUE_RESERVE */
+-			printk("\t%-6u", 0);
+-			printk("\t%-6u", 0);
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("\t%-6u", 0));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("\t%-6u", 0));
+ #endif /* !DATA_QUEUE_RESERVE */		
+ #ifdef UAPSD_SUPPORT
+ 		printk("\t%d,%d,%d,%d",
+diff --git a/mt_wifi/embedded/common/cmm_profile.c b/mt_wifi/embedded/common/cmm_profile.c
+index 54221b3..439ae92 100644
+--- a/mt_wifi/embedded/common/cmm_profile.c
++++ b/mt_wifi/embedded/common/cmm_profile.c
+@@ -596,7 +596,7 @@ static int rtmp_parse_key_buffer_from_file(IN  PRTMP_ADAPTER pAd,IN  RTMP_STRING
+ 			return RT_CfgSetWepKey(pAd, buffer, pSharedKey, KeyIdx);
+ 		else
+ #endif
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Key%dStr is Invalid key length(%ld) or Type(%ld)\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("Key%dStr is Invalid key length(%ld) or Type(%ld)\n",
+ 								KeyIdx+1, KeyLen, KeyType));
+ 		return FALSE;
+ 	}
+@@ -5003,7 +5003,7 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
+ 	CH_POWER *ch, *ch_temp;
+ 
+ 	/* Free current table */
+-	printk("%s:%d\n", __FUNCTION__, __LINE__ );
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s:%d\n", __FUNCTION__, __LINE__) );
+ 	
+ 	if( pAd->SingleSkuPwrList.Next )
+ 	{
+diff --git a/mt_wifi/embedded/common/ee_efuse.c b/mt_wifi/embedded/common/ee_efuse.c
+index 8ec94f0..4514a20 100644
+--- a/mt_wifi/embedded/common/ee_efuse.c
++++ b/mt_wifi/embedded/common/ee_efuse.c
+@@ -1296,7 +1296,7 @@ INT efuse_probe(RTMP_ADAPTER *pAd)
+ 
+ 	EFUSE_IO_READ32(pAd, ctrl_reg, &eFuseCtrl);
+ 
+-	printk("%s: efuse = %x\n", __FUNCTION__, eFuseCtrl);
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: efuse = %x\n", __FUNCTION__, eFuseCtrl));
+ 
+ 	if (pAd->chipCap.hif_type == HIF_MT)
+ 	{
+diff --git a/mt_wifi/embedded/common/eeprom.c b/mt_wifi/embedded/common/eeprom.c
+index 1924fd4..28ac224 100644
+--- a/mt_wifi/embedded/common/eeprom.c
++++ b/mt_wifi/embedded/common/eeprom.c
+@@ -771,7 +771,7 @@ INT RtmpChipOpsEepromHook(RTMP_ADAPTER *pAd, INT infType,INT forceMode)
+ 			}
+ #endif /* RTMP_EFUSE_SUPPORT */
+ 		default:
+-			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: Do not support E2P type(%d), change to BIN mode\n", __FUNCTION__, e2p_type));
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Do not support E2P type(%d), change to BIN mode\n", __FUNCTION__, e2p_type));
+ 
+ 			pChipOps->eeinit = rtmp_ee_load_from_bin;
+ 			pChipOps->eeread = rtmp_ee_bin_read16;
+diff --git a/mt_wifi/embedded/common/mlme.c b/mt_wifi/embedded/common/mlme.c
+index ff16550..15a671a 100644
+--- a/mt_wifi/embedded/common/mlme.c
++++ b/mt_wifi/embedded/common/mlme.c
+@@ -3230,7 +3230,7 @@ VOID MlmeUpdateTxRates(RTMP_ADAPTER *pAd, BOOLEAN bLinkUp, UCHAR apidx)
+ 		//CFG TODO
+ 		if (apidx >= MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO)
+ 		{
+-			printk("%s: Update for GO\n", __FUNCTION__);
++			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Update for GO\n", __FUNCTION__));
+ 			wdev = &pAd->ApCfg.MBSSID[CFG_GO_BSSID_IDX].wdev;
+ 			break;
+ 		}
+diff --git a/mt_wifi/embedded/common/rtmp_init_inf.c b/mt_wifi/embedded/common/rtmp_init_inf.c
+index 1e7fada..46c4417 100755
+--- a/mt_wifi/embedded/common/rtmp_init_inf.c
++++ b/mt_wifi/embedded/common/rtmp_init_inf.c
+@@ -557,7 +557,8 @@ int rt28xx_init(VOID *pAdSrc, RTMP_STRING *pDefaultMac, RTMP_STRING *pHostName)
+ 
+ 
+ 
+-	DBGPRINT_S(("<==== rt28xx_init, Status=%x\n", Status));
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF,
++                ("<==== rt28xx_init, Status=%x\n", Status));
+ 
+ 	return TRUE;
+ 
+diff --git a/mt_wifi/embedded/include/rtmp_comm.h b/mt_wifi/embedded/include/rtmp_comm.h
+index 8c26cff..763afd3 100644
+--- a/mt_wifi/embedded/include/rtmp_comm.h
++++ b/mt_wifi/embedded/include/rtmp_comm.h
+@@ -102,7 +102,13 @@ typedef enum{
+ /* */
+ 
+ /* Debug Level */
+-#define DBG_LVL_OFF		0
++/*
++    LINUX-1208:
++    Redefined value of DBG_LVL_OFF to value '8' because when it was set to '0',
++    the logs with flag DBG_LVL_OFF were still getting logged and was flooding
++    dmesg and syslog with not so important log messages.
++*/
++#define DBG_LVL_OFF	    8
+ #define DBG_LVL_ERROR	1
+ #define DBG_LVL_WARN	2
+ #define DBG_LVL_TRACE	3
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c
+index 40069cd..e755653 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_inf.c
+@@ -1498,7 +1498,7 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
+ 		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("Could not allocate wireless device\n"));
+ 		return;
+ 	} else
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("alloc p2p dummy wdev(%p)\n",pWdev));
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("alloc p2p dummy wdev(%p)\n",pWdev));
+ 
+ 
+ 	new_dev_p->ieee80211_ptr = pWdev;
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c
+index a8c985a..183450c 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211_util.c
+@@ -729,7 +729,7 @@ BOOLEAN CFG80211OS_ChanInfoGet(
+ 
+ 	if (pChan->flags & IEEE80211_CHAN_DISABLED)
+ 	{
+-		CFG80211DBG(DBG_LVL_ERROR, ("Chan %03d (frq %d):\tnot allowed!\n",
++		CFG80211DBG(DBG_LVL_OFF, ("Chan %03d (frq %d):\tnot allowed!\n",
+ 					(*pChanId), pChan->center_freq));
+ 		return FALSE;
+ 	}
+@@ -743,12 +743,12 @@ BOOLEAN CFG80211OS_ChanInfoGet(
+ 
+ 	if (pChan->flags & IEEE80211_CHAN_NO_IR)
+ 	{
+-		printk("%s: %u Passive\n", __FUNCTION__,*pChanId );
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: %u Passive\n", __FUNCTION__,*pChanId));
+ 		*pFlgPassiveScan = TRUE;
+ 	}
+ 	else
+ 	{
+-		printk("%s: %u Active\n", __FUNCTION__,*pChanId );
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: %u Active\n", __FUNCTION__,*pChanId) );
+ 		*pFlgPassiveScan = FALSE;
+ 	}
+ 
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c
+index 1dfd4fc..9486e7c 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211drv.c
+@@ -1419,7 +1419,7 @@ BOOLEAN CFG80211DRV_Connect(
+ 	if( pConnInfo->pBssid )
+ 	{
+ 		memcpy( &(SSID[NDIS_802_11_LENGTH_SSID + 1]), pConnInfo->pBssid, 6 );
+-		printk("%s: Specify BSS as well\n", __FUNCTION__ );
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Specify BSS as well\n", __FUNCTION__));
+ 	}
+ 
+ 	Set_SSID_BSSID_Proc(pAd, (RTMP_STRING *)SSID);
+@@ -1952,7 +1952,7 @@ VOID CFG80211_RegRuleApply(
+ 			bEdcca = TRUE;
+ 		}
+ 
+-		printk("%s: bEdcca is %d for '%c%c'\n", __FUNCTION__, bEdcca , pAlpha2[0], pAlpha2[1]);
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: bEdcca is %d for '%c%c'\n", __FUNCTION__, bEdcca , pAlpha2[0], pAlpha2[1]));
+ 
+ 		if (bEdcca)
+ 		{
+diff --git a/mt_wifi/embedded/sta/sta_cfg.c b/mt_wifi/embedded/sta/sta_cfg.c
+index 0ecd32c..d503794 100755
+--- a/mt_wifi/embedded/sta/sta_cfg.c
++++ b/mt_wifi/embedded/sta/sta_cfg.c
+@@ -732,7 +732,7 @@ INT Set_SSID_BSSID_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+ 			MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: Security is not WPA2/WPA2PSK AES\n", __FUNCTION__));
+ 		}
+ 
+-		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("[PMF]%s:: MFPC=%d, MFPR=%d, SHA256=%d\n",
++		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("[PMF]%s:: MFPC=%d, MFPR=%d, SHA256=%d\n",
+ 															  __FUNCTION__, pAd->StaCfg.PmfCfg.MFPC, pAd->StaCfg.PmfCfg.MFPR,
+ 															  pAd->StaCfg.PmfCfg.PMFSHA256));
+ #endif /* DOT11W_PMF_SUPPORT */
+diff --git a/mt_wifi/mac/mt_mac.c b/mt_wifi/mac/mt_mac.c
+index 60eda65..1b5b5e2 100644
+--- a/mt_wifi/mac/mt_mac.c
++++ b/mt_wifi/mac/mt_mac.c
+@@ -2108,7 +2108,7 @@ INT mt_mac_init(RTMP_ADAPTER *pAd)
+ 	CmdGetThermalSensorResult(pAd,0,&temperature);
+ #endif /* MT7603 ||MT7628  */
+ 	pAd->ate_temperature = temperature;
+-	printk("%s: Got %d\n", __FUNCTION__, temperature );
++	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: Got %d\n", __FUNCTION__, temperature) );
+ #endif
+ 	MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("<--%s()\n", __FUNCTION__));
+ 	return TRUE;

@@ -1,0 +1,302 @@
+From d05d0f6b3587303933b09e503c1b6343038c480e Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Mon, 16 Sep 2019 14:21:46 -0400
+Subject: [PATCH] rsa_import_keys: Add rsa_import_keys command.
+
+This command can be used to import (RSA) public keys from a fitImage.
+In order to be most useful, the fitImage should have been signed by a
+master key.  Thus, this provides a mechanism to import a chain of signed
+keys.
+
+Note that the device tree must have sufficient padding to include any
+keys that are imported (use "-p NNNN" when compiling the device tree.)
+---
+ cmd/Kconfig           |   7 ++
+ cmd/Makefile          |   2 +
+ cmd/import_rsa_keys.c | 243 ++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 252 insertions(+)
+ create mode 100644 cmd/import_rsa_keys.c
+
+diff --git a/cmd/Kconfig b/cmd/Kconfig
+index cda7931f..cb35ed5b 100644
+--- a/cmd/Kconfig
++++ b/cmd/Kconfig
+@@ -1697,6 +1697,13 @@ config CMD_TPM_TEST
+ 
+ endif
+ 
++config CMD_IMPORT_RSA_KEYS
++	bool "Import RSA key (signed by existing keyring)"
++	depends on FIT
++	default n
++	help
++	  Import RSA keys from FIT image in memory
++
+ endmenu
+ 
+ menu "Firmware commands"
+diff --git a/cmd/Makefile b/cmd/Makefile
+index f982564a..15ad6b09 100644
+--- a/cmd/Makefile
++++ b/cmd/Makefile
+@@ -169,6 +169,8 @@ obj-$(CONFIG_CMD_REGULATOR) += regulator.o
+ 
+ obj-$(CONFIG_CMD_BLOB) += blob.o
+ 
++obj-$(CONFIG_CMD_IMPORT_RSA_KEYS) += import_rsa_keys.o
++
+ # Android Verified Boot 2.0
+ obj-$(CONFIG_CMD_AVB) += avb.o
+ 
+diff --git a/cmd/import_rsa_keys.c b/cmd/import_rsa_keys.c
+new file mode 100644
+index 00000000..f6d08f3e
+--- /dev/null
++++ b/cmd/import_rsa_keys.c
+@@ -0,0 +1,243 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Adapted liberally from cmd/source.c
++ * by Patrick Doyle, pdoyle@irobot.com.
++ * originally (C) Copyright 2001
++ * Kyle Harris, kharris@nexus-tech.net
++ */
++
++/*
++ * The "import_rsa_keys" command allows public keys to be imported
++ * and added to u-boot's device tree.  Such keys would presumably
++ * be signed by one of the key(s) already in the device tree
++ * and would presumably be required to be verified by said key.
++ */
++
++#include <common.h>
++#include <command.h>
++#include <image.h>
++#include <malloc.h>
++#include <mapmem.h>
++#include <asm/byteorder.h>
++#include <asm/io.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++struct keyprop {
++        const void *value;
++        int len;
++};
++
++struct key {
++        struct keyprop r_squared;
++        struct keyprop modulus;
++        struct keyprop exponent;
++        struct keyprop n0_inverse;
++        struct keyprop num_bits;
++        const char *algo;
++        const char *required;
++};
++
++static int get_and_verify_rsa_key(const void *fit, int noffset, struct key *key)
++{
++        key->r_squared.value  = fdt_getprop(fit, noffset, "rsa,r-squared",  &key->r_squared.len);
++        key->modulus.value    = fdt_getprop(fit, noffset, "rsa,modulus",    &key->modulus.len);
++        key->exponent.value   = fdt_getprop(fit, noffset, "rsa,exponent",   &key->exponent.len);
++        key->n0_inverse.value = fdt_getprop(fit, noffset, "rsa,n0-inverse", &key->n0_inverse.len);
++        key->num_bits.value   = fdt_getprop(fit, noffset, "rsa,num-bits",   &key->num_bits.len);
++        key->algo             = fdt_getprop(fit, noffset, "algo", NULL);
++        key->required         = fdt_getprop(fit, noffset, "required", NULL);
++        debug("%s: r_squared  = (%p, %d)\n", __func__, key->r_squared.value,  key->r_squared.len);
++        debug("%s: modulus    = (%p, %d)\n", __func__, key->modulus.value,    key->modulus.len);
++        debug("%s: exponent   = (%p, %d)\n", __func__, key->exponent.value,   key->exponent.len);
++        debug("%s: n0_inverse = (%p, %d)\n", __func__, key->n0_inverse.value, key->n0_inverse.len);
++        debug("%s: num-bits   = (%p, %d)\n", __func__, key->num_bits.value,   key->num_bits.len);
++        debug("%s: algo       = \"%s\"\n",    __func__, key->algo);
++        debug("%s: required   = \"%s\"\n",    __func__, key->required);
++        return!(key->r_squared.value  && key->r_squared.len  > 0 &&
++                key->modulus.value    && key->modulus.len    > 0 &&
++                key->exponent.value   && key->exponent.len   > 0 &&
++                key->n0_inverse.value && key->n0_inverse.len > 0 &&
++                key->num_bits.value   && key->num_bits.len   > 0 &&
++                key->algo                                        &&
++                /* algo ~= {crc32,sha1,sha256,md5},rsa{2048,4096} && ???*/
++                (key->required ? (!strcmp(key->required, "conf") || !strcmp(key->required, "image")) : true));
++}
++        
++static int add_keyprop(void *fdt, int keyoffset, const char *propname,
++                const struct keyprop *key)
++{
++        if (fdt_setprop(fdt, keyoffset, propname, key->value, key->len) < 0)
++                return -1;
++        return 0;
++}
++
++static int add_rsa_key_to_device_tree(const struct key *key, const char *keyname)
++{
++        void *fdt = (void *)gd->fdt_blob;
++        int sigoffset;
++        char keynodename[256];
++        int keyoffset;
++        
++        sigoffset = fdt_path_offset(fdt, "/" FIT_SIG_NODENAME);
++        if (sigoffset < 0)
++                return 1;
++
++        snprintf(keynodename, sizeof(keynodename), "key-%s", keyname);
++        keyoffset = fdt_add_subnode(fdt, sigoffset, keynodename);
++
++        if (keyoffset < 0)
++                return 1;
++        if (add_keyprop(fdt, keyoffset, "rsa,r-squared",  &key->r_squared) < 0)
++                return 1;
++        if (add_keyprop(fdt, keyoffset, "rsa,modulus",    &key->modulus) < 0)
++                return 1;
++        if (add_keyprop(fdt, keyoffset, "rsa,exponent",   &key->exponent) < 0)
++                return 1;
++        if (add_keyprop(fdt, keyoffset, "rsa,n0-inverse", &key->n0_inverse) < 0)
++                return 1;
++        if (add_keyprop(fdt, keyoffset, "rsa,num-bits",   &key->num_bits) < 0)
++                return 1;
++        if (fdt_setprop(fdt, keyoffset, "algo", key->algo, strlen(key->algo) + 1) < 0)
++                return 1;
++        if (key->required && fdt_setprop(fdt, keyoffset, "required", key->required, strlen(key->required) + 1) < 0)
++                return 1;
++        return 0;
++}
++static int import_rsa_key_named(const void *fit, const char *keyname)
++{
++        char keypath[100];
++        int noffset;
++        struct key key;
++        
++        snprintf(keypath, sizeof(keypath), "%s/%s", FIT_IMAGES_PATH, keyname);
++        noffset = fdt_path_offset(fit, keypath);
++
++        if (get_and_verify_rsa_key(fit, noffset, &key))
++                return 1;
++
++        if (add_rsa_key_to_device_tree(&key, keyname))
++                return 1;
++        
++        return 0;
++}
++
++static int
++import_rsa_keys_from_fit(const void *fit, int cfg_noffset)
++{
++        const char *keyprops, *end, *keyprop;
++        int keypropslen;
++        
++        keyprops = fdt_getprop(fit, cfg_noffset, "keys", &keypropslen);
++        if (keyprops == 0 || keypropslen == 0)
++                return 1;
++
++        end = keyprops + keypropslen;
++        for (keyprop = keyprops; keyprop < end; keyprop += strlen(keyprop) + 1) {
++                const char *key = fdt_stringlist_get(fit, cfg_noffset, keyprop, 0, 0);
++                if (!key)
++                        return 1;
++                if (import_rsa_key_named(fit, key))
++                        return 1;
++        }
++        return 0;
++}
++
++/**
++ * get_default_config() - Return default property from /configurations
++ *
++ * Return: Pointer to value of default property (or NULL)
++ */
++static const char *get_default_config(const void *fit)
++{
++        int images_noffset;
++
++        images_noffset = fdt_path_offset(fit, FIT_CONFS_PATH);
++        if (images_noffset < 0)
++                return NULL;
++
++        return fdt_getprop(fit, images_noffset, FIT_DEFAULT_PROP, NULL);
++}
++
++static int
++import_rsa_keys (ulong addr, const char *fit_uname_config)
++{
++        int             verify;
++        const void*     fit;
++        int             cfg_noffset;
++
++        verify = env_get_yesno("verify");
++
++        fit = map_sysmem(addr, 0);
++        switch (genimg_get_format(fit)) {
++        case IMAGE_FORMAT_FIT:
++                if (!fit_check_format (fit)) {
++                        puts ("Bad FIT image format\n");
++                        return 1;
++                }
++
++                if (!fit_uname_config)
++                        fit_uname_config = get_default_config(fit);
++
++                cfg_noffset = fit_conf_get_node(fit, fit_uname_config);
++                if (cfg_noffset < 0) {
++                        puts ("No configuration found\n");
++                        return 1;
++                }
++                /* verify integrity */
++                if (verify) {
++                        if (fit_config_verify(fit, cfg_noffset)) {
++                                puts ("configuration failed to verify\n");
++                                return 1;
++                        }
++                }
++                if (import_rsa_keys_from_fit(fit, cfg_noffset)) {
++                        puts ("Error importing key(s)\n");
++                        return 1;
++                }
++                break;
++        default:
++                puts ("Wrong image format for \"import_rsa_keys\" command\n");
++                return 1;
++        }
++
++        return 0;
++}
++
++/**************************************************/
++#if defined(CONFIG_CMD_IMPORT_RSA_KEYS)
++static int do_import_rsa_keys(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++{
++        ulong addr;
++        int rcode;
++        const char *fit_uname = NULL;
++
++        /* Find script image */
++        if (argc < 2) {
++                addr = CONFIG_SYS_LOAD_ADDR;
++                debug ("*  import_rsa_keys: default load address = 0x%08lx\n", addr);
++        } else if (fit_parse_subimage (argv[1], load_addr, &addr, &fit_uname)) {
++                debug ("*  import_rsa_keys: subimage '%s' from FIT image at 0x%08lx\n",
++                                fit_uname, addr);
++        } else {
++                addr = simple_strtoul(argv[1], NULL, 16);
++                debug ("*  import_rsa_keys: cmdline image address = 0x%08lx\n", addr);
++        }
++
++        printf ("## Importing keys from FIT Image at %08lx\n", addr);
++        rcode = import_rsa_keys (addr, fit_uname);
++        return rcode;
++}
++
++#ifdef CONFIG_SYS_LONGHELP
++static char import_rsa_keys_help_text[] =
++        "[addr]\n"
++        "\t- import RSA public keys from `images` section of FIT format uImage\n"
++        "";
++#endif
++
++U_BOOT_CMD(
++        import_rsa_keys, 2, 0, do_import_rsa_keys,
++        "import RSA keys from FIT image in memory", import_rsa_keys_help_text
++);
++#endif
+-- 
+2.24.1
+

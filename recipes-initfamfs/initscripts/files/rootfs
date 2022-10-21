@@ -1,0 +1,42 @@
+#!/bin/sh
+# Copyright (C) 2011 O.S. Systems Software LTDA.
+# Licensed on MIT
+
+rootfs_enabled() {
+	return 0
+}
+
+rootfs_run() {
+	if [ -z "$ROOTFS_DIR" ]; then
+		return
+	fi
+#	if grep -q fallback /proc/cmdline; then
+#	    ubiblock --create `devfromname old_rootfs`
+#	    ROOTFS_BLOCK=/dev/ubiblock0_old_rootfs
+#	else
+#	    ROOTFS_BLOCK=/dev/ubiblock0_rootfs
+#	fi
+
+    # pet watchdog here, just before we verify the rootfs and mount it
+    #
+    # NOTE: during boot, we reset watchdog timer twice
+    # a) here, from rootfs
+    # b) from irbtsetup
+    pet_watchdog
+
+	# Always mount /dev/ubiblock0_rootfs.  See comment in 10-fallback script.  Software update
+	# will fail (when it attempts to delete the old_rootfs volume to make room for the new image)
+	#  we mount old_rootfs to  make room for the new image.
+	ROOTFS_BLOCK=/dev/ubiblock0_rootfs
+	msg "Verifying rootfs $ROOTFS_BLOCK..."
+	if ! sha256sum -b /dev/ubiblock0_rootfs | cut -c-64 | tr "\n" "\0" | cmp - /proc/device-tree/rootfshash; then
+		msg "WARNING INCORRECT rootfs CHECKSUM -- will reset to fallback image in 60 seconds"
+		mount_persistent
+		echo x > /dev/watchdog
+		log_fallback "BAD ROOTFS CHECKSUM"
+		sleep 120
+	else
+		msg "rootfs verified"
+	fi
+	mount -o ro $ROOTFS_BLOCK $ROOTFS_DIR
+}

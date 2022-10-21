@@ -1,0 +1,66 @@
+From 51e91298967de362eeb2c3fd19f4d18a375dce5a Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Fri, 9 Aug 2019 15:30:33 -0400
+Subject: [PATCH] Force a hard reset on Sundial.
+
+Subject to CONFIG_SUNDIAL_FORCE_HARD_RESET being enabled.
+---
+ arch/mips/ralink/Kconfig |  9 +++++++++
+ arch/mips/ralink/reset.c | 16 ++++++++++++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/arch/mips/ralink/Kconfig b/arch/mips/ralink/Kconfig
+index 840a571..f8b5b82 100644
+--- a/arch/mips/ralink/Kconfig
++++ b/arch/mips/ralink/Kconfig
+@@ -103,4 +103,13 @@ choice
+ 
+ endchoice
+ 
++config SUNDIAL_FORCE_HARD_RESET
++	bool "Force hard reset for Sundial boards"
++	help
++	 Select this option for iRobot Sundial boards to configure the
++	 `ralink_restart()` function to force a hard reset by driving GPIO18
++	 low instead of (actually, prior to) writing to the SYS_RST bit
++	 in the RSTCTL register.
++	default n
++
+ endif
+diff --git a/arch/mips/ralink/reset.c b/arch/mips/ralink/reset.c
+index e9531fe..d8e7ec5 100644
+--- a/arch/mips/ralink/reset.c
++++ b/arch/mips/ralink/reset.c
+@@ -24,6 +24,11 @@
+ #define RSTCTL_RESET_PCI	BIT(26)
+ #define RSTCTL_RESET_SYSTEM	BIT(0)
+ 
++/* GPIO Control */
++#define GPIO_CTRL_0		0x600
++#define GPIO_DCLR_0		0x640
++#define SUNDIAL_GPIO_RESET_PIN	BIT(18)
++
+ static int ralink_assert_device(struct reset_controller_dev *rcdev,
+ 				unsigned long id)
+ {
+@@ -92,6 +97,17 @@ static void ralink_restart(char *command)
+ 	}
+ 
+ 	local_irq_disable();
++	if (IS_ENABLED(CONFIG_SUNDIAL_FORCE_HARD_RESET)) {
++		/* Reset Sundial by driving GPIO 18 low.
++		 *
++		 * Abuse the `rt_sysc_w32()` function to write to GPIO_CTRL_0 and GPIO_DCLR_0 .
++		 * Make GPIO 18 an output (which may force us to reset, if its data register is already
++		 * 0), and then force it to be zero (i.e. "clear" it).
++		 */
++		rt_sysc_w32(SUNDIAL_GPIO_RESET_PIN | rt_sysc_r32(GPIO_CTRL_0), GPIO_CTRL_0);
++		rt_sysc_w32(SUNDIAL_GPIO_RESET_PIN, GPIO_DCLR_0);
++		mdelay(50); /* The reset signal as a large cap on it, so drive it low for a _long_ time */
++	}
+ 	rt_sysc_w32(RSTCTL_RESET_SYSTEM, SYSC_REG_RESET_CTRL);
+ 	unreachable();
+ }
+-- 
+2.7.4
+

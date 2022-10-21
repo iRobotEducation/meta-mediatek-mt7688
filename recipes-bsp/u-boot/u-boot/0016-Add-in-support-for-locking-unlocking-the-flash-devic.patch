@@ -1,0 +1,141 @@
+From ec8611623de9b3c5c099e8e1da235491492da421 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 16 Jan 2020 11:34:28 -0500
+Subject: [PATCH] Add in support for locking/unlocking the flash devices used
+ on Sundial
+
+This patch adds in minimal support for the flash_lock()/flash_unlock()
+API for the ISSI and Macronix flash devices we use on Sundial boards.
+
+We do not support the full API as intended by the mtd subsystem, we only
+support locking and unlocking the entire flash, regardless of what
+values for offset and length are specified.  So, while sufficient unto
+the needs of the Sundial program, this should not be considered to be
+production ready in the general case.
+---
+ drivers/mtd/spi/spi-nor-core.c | 82 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 80 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mtd/spi/spi-nor-core.c b/drivers/mtd/spi/spi-nor-core.c
+index b7f0733877..6bc79270ce 100644
+--- a/drivers/mtd/spi/spi-nor-core.c
++++ b/drivers/mtd/spi/spi-nor-core.c
+@@ -591,7 +591,6 @@ erase_err:
+ 	return ret;
+ }
+ 
+-#if defined(CONFIG_SPI_FLASH_STMICRO) || defined(CONFIG_SPI_FLASH_SST)
+ /* Write status register and ensure bits in mask match written values */
+ static int write_sr_and_check(struct spi_nor *nor, u8 status_new, u8 mask)
+ {
+@@ -607,12 +606,14 @@ static int write_sr_and_check(struct spi_nor *nor, u8 status_new, u8 mask)
+ 		return ret;
+ 
+ 	ret = read_sr(nor);
++	printf("%s: ret = 0x%02X, mask = 0x%02X, status_new = 0x%02X\n", __FUNCTION__, ret, mask, status_new);
+ 	if (ret < 0)
+ 		return ret;
+ 
+ 	return ((ret & mask) != (status_new & mask)) ? -EIO : 0;
+ }
+ 
++#if defined(CONFIG_SPI_FLASH_STMICRO) || defined(CONFIG_SPI_FLASH_SST)
+ static void stm_get_locked_range(struct spi_nor *nor, u8 sr, loff_t *ofs,
+ 				 uint64_t *len)
+ {
+@@ -879,6 +880,79 @@ static int stm_is_locked(struct spi_nor *nor, loff_t ofs, uint64_t len)
+ }
+ #endif /* CONFIG_SPI_FLASH_STMICRO */
+ 
++/*
++ * Lock the whole flash, ignoring the ofs and len parameters
++ *
++ * This is certainly a hack (hence the name), but it is required
++ * for iRobot's application.  Our NOR flash layout requires that
++ * we be able to lock the whole flash, and to unlock and relock
++ * only blocks 12 and 14.  The ISSI and Macronix parts can
++ * selectively lock/unlock
++ * blocks 15, 14-15, 12-15, 8-15, or the whole flash (and similarly
++ * blocks 0,   0-1,   0-3,  0-7,  or the whole flash), but not
++ * individual blocks that our mtd layout requires.  Changing the
++ * mtd layout at this point in the game, just to accomodate the
++ * flash locking/unlocking API, would not provide any benefit to
++ * justify the risk (however small it is) of such a change.
++ *
++ * So, we just hack the API and lock/unlock the whole flash regardless
++ * of which blocks are requested to be locked/unlocked.
++ */
++static int hack_lock(struct spi_nor *nor, loff_t ofs, uint64_t len)
++{
++	int status_old, status_new;
++	u8 mask = SR_SRWD | SR_TB | SR_BP2 | SR_BP1 | SR_BP0;
++
++	status_old = read_sr(nor);
++	printf("%s: status_old = 0x%02X\n", __FUNCTION__, status_old);
++	if (status_old < 0)
++		return status_old;
++	// SRWD = 1, BP[3..0] = 0111 -> lock the whole flash
++	status_new = (status_old & ~mask) | (SR_SRWD | SR_BP2 | SR_BP1 | SR_BP0);
++	printf("%s: status_new = 0x%02X\n", __FUNCTION__, status_new);
++	return write_sr_and_check(nor, status_new, mask);
++}
++
++/*
++ * Unlock a region of the flash. See hack_lock() for more info
++ *
++ * Returns negative on errors, 0 on success.
++ */
++static int hack_unlock(struct spi_nor *nor, loff_t ofs, uint64_t len)
++{
++	int status_old, status_new;
++	u8 mask = SR_SRWD | SR_TB | SR_BP2 | SR_BP1 | SR_BP0;
++
++	status_old = read_sr(nor);
++	printf("%s: status_old = 0x%02X\n", __FUNCTION__, status_old);
++	if (status_old < 0)
++		return status_old;
++	// SRWD = 0, BP[3..0] = 0000 -> unlock the whole flash
++	status_new = (status_old & ~mask);
++	printf("%s: status_new = 0x%02X\n", __FUNCTION__, status_new);
++	return write_sr_and_check(nor, status_new, mask);
++}
++
++/*
++ * Check if a region of the flash is (completely) locked. See hack_lock() for
++ * more info.
++ *
++ * Returns 1 if entire region is locked, 0 if any portion is unlocked, and
++ * negative on errors.
++ */
++static int hack_is_locked(struct spi_nor *nor, loff_t ofs, uint64_t len)
++{
++	int status;
++	u8 mask = SR_SRWD | SR_TB | SR_BP2 | SR_BP1 | SR_BP0;
++
++	status = read_sr(nor);
++	if (status < 0)
++		return status;
++	printf("%s: status = 0x%02X\n", __FUNCTION__, status);
++	// SRWD = 1, BP[3..0] = 0111 -> whole flash is locked (according to our definition)
++	return (status & mask) == (SR_SRWD | SR_BP2 | SR_BP1 | SR_BP0);
++}
++
+ static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
+ {
+ 	int			tmp;
+@@ -2313,7 +2387,11 @@ int spi_nor_scan(struct spi_nor *nor)
+ 		nor->flash_is_locked = stm_is_locked;
+ 	}
+ #endif
+-
++	if (JEDEC_MFR(info) == 0x9D || JEDEC_MFR(info) == 0xC2) {
++		nor->flash_lock = hack_lock;
++		nor->flash_unlock = hack_unlock;
++		nor->flash_is_locked = hack_is_locked;
++	}
+ #ifdef CONFIG_SPI_FLASH_SST
+ 	/* sst nor chips use AAI word program */
+ 	if (info->flags & SST_WRITE)
+-- 
+2.24.1
+

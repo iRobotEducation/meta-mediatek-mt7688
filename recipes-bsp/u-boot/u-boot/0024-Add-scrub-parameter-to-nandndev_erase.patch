@@ -1,0 +1,53 @@
+From 9b8bd32201fc204f106739d8c4d81c7000c53ca0 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 14 Jul 2020 11:46:02 -0400
+Subject: [PATCH] Add scrub parameter to nandndev_erase.
+
+It makes it easier to test the bad block handling when we can reset the
+arbitrarily induced bad blocks.
+---
+ drivers/mtd/nand/core.c  | 6 +++---
+ include/linux/mtd/nand.h | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/mtd/nand/core.c b/drivers/mtd/nand/core.c
+index 0b793695cc..5599a6da47 100644
+--- a/drivers/mtd/nand/core.c
++++ b/drivers/mtd/nand/core.c
+@@ -125,9 +125,9 @@ EXPORT_SYMBOL_GPL(nanddev_isreserved);
+  *
+  * Return: 0 in case of success, a negative error code otherwise.
+  */
+-int nanddev_erase(struct nand_device *nand, const struct nand_pos *pos)
++int nanddev_erase(struct nand_device *nand, const struct nand_pos *pos, int scrub)
+ {
+-	if (nanddev_isbad(nand, pos) || nanddev_isreserved(nand, pos)) {
++	if ((!scrub && nanddev_isbad(nand, pos)) || nanddev_isreserved(nand, pos)) {
+ 		pr_warn("attempt to erase a bad/reserved block @%llx\n",
+ 			nanddev_pos_to_offs(nand, pos));
+ 		return -EIO;
+@@ -161,7 +161,7 @@ int nanddev_mtd_erase(struct mtd_info *mtd, struct erase_info *einfo)
+ 	nanddev_offs_to_pos(nand, einfo->addr, &pos);
+ 	nanddev_offs_to_pos(nand, einfo->addr + einfo->len - 1, &last);
+ 	while (nanddev_pos_cmp(&pos, &last) <= 0) {
+-		ret = nanddev_erase(nand, &pos);
++		ret = nanddev_erase(nand, &pos, einfo->scrub);
+ 		if (ret) {
+ 			einfo->fail_addr = nanddev_pos_to_offs(nand, &pos);
+ 
+diff --git a/include/linux/mtd/nand.h b/include/linux/mtd/nand.h
+index 13e8dd1103..835e028512 100644
+--- a/include/linux/mtd/nand.h
++++ b/include/linux/mtd/nand.h
+@@ -677,7 +677,7 @@ static inline bool nanddev_io_iter_end(struct nand_device *nand,
+ 
+ bool nanddev_isbad(struct nand_device *nand, const struct nand_pos *pos);
+ bool nanddev_isreserved(struct nand_device *nand, const struct nand_pos *pos);
+-int nanddev_erase(struct nand_device *nand, const struct nand_pos *pos);
++int nanddev_erase(struct nand_device *nand, const struct nand_pos *pos, int scrub);
+ int nanddev_markbad(struct nand_device *nand, const struct nand_pos *pos);
+ 
+ /* BBT related functions */
+-- 
+2.24.1
+

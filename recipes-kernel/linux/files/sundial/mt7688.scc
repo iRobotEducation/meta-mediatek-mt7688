@@ -1,0 +1,6 @@
+kconf hardware mt7688.cfg
+
+# include cfg/usb-mass-storage.scc
+# include cfg/fs/vfat.scc
+
+include mt7688-openwrt-deviations.scc

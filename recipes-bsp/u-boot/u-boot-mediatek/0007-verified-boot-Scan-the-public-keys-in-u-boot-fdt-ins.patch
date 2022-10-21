@@ -1,0 +1,40 @@
+From e4cb5781ba6ee3bd4fb978759cbf6ce1dad438c4 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 17 Oct 2019 13:06:38 -0400
+Subject: [PATCH] verified-boot: Scan the public keys in u-boot fdt instead of
+ the (image) fit.
+
+rsa_verify() attempts to verify the signature of an image against the
+key marked as `required="conf` in the u-boot ftd first, then it attempts
+to verify the signature against a key specified by the key-name-hint
+property.  If both of those fail, then it attempts to verify the
+signature against the rest of the keys in the <<OOPS>>.  Previously, it
+would attempt to verify the signature against keys in the fitImage (the
+image it was verifying).  With this change it attempts to verify the
+signature against additional keys in the u-boot fdt (which appears to
+have been the design intent of this code).
+
+Signed-off-by: Patrick Doyle <pdoyle@irobot.com>
+---
+ lib/rsa/rsa-verify.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/rsa/rsa-verify.c b/lib/rsa/rsa-verify.c
+index 86c12e75..a31ac9bd 100644
+--- a/lib/rsa/rsa-verify.c
++++ b/lib/rsa/rsa-verify.c
+@@ -449,9 +449,9 @@ int rsa_verify(struct image_sign_info *info,
+ 		return ret;
+ 
+ 	/* No luck, so try each of the keys in turn */
+-	for (ndepth = 0, noffset = fdt_next_node(info->fit, sig_node, &ndepth);
++	for (ndepth = 0, noffset = fdt_next_node(blob, sig_node, &ndepth);
+ 			(noffset >= 0) && (ndepth > 0);
+-			noffset = fdt_next_node(info->fit, noffset, &ndepth)) {
++			noffset = fdt_next_node(blob, noffset, &ndepth)) {
+ 		if (ndepth == 1 && noffset != node) {
+ 			ret = rsa_verify_with_keynode(info, hash, sig, sig_len,
+ 						      noffset);
+-- 
+2.24.1
+

@@ -1,0 +1,52 @@
+From f264d94b75710d85856dd526caf16f88debf34b2 Mon Sep 17 00:00:00 2001
+From: "Doshi, Saiyam" <sdoshi@irobot.com>
+Date: Mon, 8 Feb 2021 04:37:19 -0500
+Subject: mt_wifi: handle NULL pointer
+
+The issue occured when primary wlan0 is set to some xx reg. domain and we
+try to bring-up and configure softap for yy reg. domain.
+
+From userspace, this issue is handled by configuring regional domain once for
+primary interface, and not setting again for softap (not setting in hostapd.conf).
+
+Fix the driver bug, which lead to kernel panic due to NULL pointer exception.
+---
+ mt_wifi/embedded/os/linux/cfg80211/cfg80211.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c b/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c
+index 878cc84..8fbded2 100755
+--- a/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c
++++ b/mt_wifi/embedded/os/linux/cfg80211/cfg80211.c
+@@ -2170,15 +2170,25 @@ static int CFG80211_OpsMgmtTx(
+ #endif /* LINUX_VERSION_CODE: 3.6.0 */
+ 
+     CFG80211DBG(DBG_LVL_TRACE, ("80211> %s ==>\n", __FUNCTION__));
++
++    if (params == NULL) {
++        CFG80211DBG(DBG_LVL_ERROR, ("80211> params is NULL\n"));
++        return -EINVAL;
++    }
++
+     MAC80211_PAD_GET(pAd, pWiphy);
+ 
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+ 	RTMP_DRIVER_NET_DEV_GET(pAd, &dev);
+ #endif /* LINUX_VERSION_CODE: 3.6.0 */
+-
+     /* get channel number */
+-    ChanId = ieee80211_frequency_to_channel(params->chan->center_freq);
+-    CFG80211DBG(DBG_LVL_TRACE, ("80211> Mgmt Channel = %d\n", ChanId));
++	if (params->chan != NULL) {
++		ChanId = ieee80211_frequency_to_channel(params->chan->center_freq);
++		CFG80211DBG(DBG_LVL_INFO, ("80211> Mgmt Channel = %d\n", ChanId));
++	} else {
++		CFG80211DBG(DBG_LVL_ERROR, ("80211> params->chan is NULL\n"));
++       return -EINVAL;
++	}
+ 
+ 	/* Send the Frame with basic rate 6 */
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0))
+-- 
+2.24.1
+

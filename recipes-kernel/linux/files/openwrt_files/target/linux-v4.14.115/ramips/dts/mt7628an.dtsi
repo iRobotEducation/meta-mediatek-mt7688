@@ -1,0 +1,608 @@
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "mediatek,mtk7628an-soc";
+
+	cpus {
+		cpu@0 {
+			compatible = "mips,mips24KEc";
+		};
+	};
+
+	chosen {
+		bootargs = "console=ttyS0,57600";
+	};
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	cpuintc: cpuintc@0 {
+		#address-cells = <0>;
+		#interrupt-cells = <1>;
+		interrupt-controller;
+		compatible = "mti,cpu-interrupt-controller";
+	};
+
+	palmbus: palmbus@10000000 {
+		compatible = "palmbus";
+		reg = <0x10000000 0x200000>;
+		ranges = <0x0 0x10000000 0x1FFFFF>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		sysc: sysc@0 {
+			compatible = "ralink,mt7620a-sysc", "syscon";
+			reg = <0x0 0x100>;
+		};
+
+		watchdog: watchdog@100 {
+			compatible = "ralink,mt7628an-wdt", "mediatek,mt7621-wdt";
+			reg = <0x100 0x30>;
+
+			resets = <&rstctrl 8>;
+			reset-names = "wdt";
+
+			interrupt-parent = <&intc>;
+			interrupts = <24>;
+		};
+
+		intc: intc@200 {
+			compatible = "ralink,mt7628an-intc", "ralink,rt2880-intc";
+			reg = <0x200 0x100>;
+
+			resets = <&rstctrl 9>;
+			reset-names = "intc";
+
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			interrupt-parent = <&cpuintc>;
+			interrupts = <2>;
+
+			ralink,intc-registers = <0x9c 0xa0
+						 0x6c 0xa4
+						 0x80 0x78>;
+		};
+
+		memc: memc@300 {
+			compatible = "ralink,mt7620a-memc", "ralink,rt3050-memc";
+			reg = <0x300 0x100>;
+
+			resets = <&rstctrl 20>;
+			reset-names = "mc";
+
+			interrupt-parent = <&intc>;
+			interrupts = <3>;
+		};
+
+		gpio@600 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			compatible = "mtk,mt7628-gpio", "mtk,mt7621-gpio";
+			reg = <0x600 0x100>;
+
+			interrupt-parent = <&intc>;
+			interrupts = <6>;
+
+			gpio0: bank@0 {
+				reg = <0>;
+				compatible = "mtk,mt7621-gpio-bank";
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+
+			gpio1: bank@1 {
+				reg = <1>;
+				compatible = "mtk,mt7621-gpio-bank";
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+
+			gpio2: bank@2 {
+				reg = <2>;
+				compatible = "mtk,mt7621-gpio-bank";
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+		};
+
+		i2c: i2c@900 {
+			compatible = "mediatek,mt7621-i2c";
+			reg = <0x900 0x100>;
+
+			resets = <&rstctrl 16>;
+			reset-names = "i2c";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			status = "disabled";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c_pins>;
+		};
+
+		i2s: i2s@a00 {
+			compatible = "mediatek,mt7628-i2s";
+			reg = <0xa00 0x100>;
+
+			resets = <&rstctrl 17>;
+			reset-names = "i2s";
+
+			interrupt-parent = <&intc>;
+			interrupts = <10>;
+
+			txdma-req = <2>;
+			rxdma-req = <3>;
+
+			dmas = <&gdma 4>,
+				<&gdma 6>;
+			dma-names = "tx", "rx";
+
+			status = "disabled";
+		};
+
+		spi0: spi@b00 {
+			compatible = "ralink,mt7621-spi";
+			reg = <0xb00 0x100>;
+
+			resets = <&rstctrl 18>;
+			reset-names = "spi";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi_pins>;
+
+			status = "disabled";
+		};
+
+		/*
+		 * Adding 8250_mtk driver compatibility string to all uart
+		 * sections by keeping existing compatibility of ns16550a to
+		 * have base register compatibility/functionality along with
+		 * vendor specific driver functionality/support
+		 *
+		 * For more details on how more than one string in compatible
+		 * property works for a section, please refer
+		 * https://elinux.org/Device_Tree_Usage#Understanding_the_compatible_Property
+		 * and device tree code in Linux Kernel (if interested to look
+		 * into source code)
+		 * linux
+		 *	drivers/of/
+		 *	scripts/dtc/libfdt
+		 * SoC vendor/BSP provider supplied mt7628an.dtsi source file
+		 * with compatible strings updated to mediatek 6577 uart
+		 * driver
+		 *
+		 * Changing uart0 section name to uartlite to make 8250_mtk.c
+		 * (MT6577 UART driver) mtk8250_probe_of(...) function not to
+		 * faile due to non-avilability of either named clock "baud"
+		 * or unnamed clock and a named clock "bus".
+		 * below clocks are added in file "arch/mips/ralink/mt7620.c"
+		 * under function ralink_clk_init.
+		 *
+		 * NOTE:
+		 *	1. do not change uart0 to uartlite in below section
+		 *	   for ralink,group and ralink,function
+		 *	   fields/properties.
+		 *	   doing so will break uart functionality at runtime
+		 *	   for MT7628AN SoC.
+		 *	   uartlite pin mux group definition exists and added
+		 *	   at runtime only for MT7628A SoC and uart0 pin mux
+		 *	   group is defined and added at runtime for MT7628AN
+		 *	   SoC only which is a contradiction to uartlite clock
+		 *	   name for uart0 device on MT7628AN SoC.
+		 *
+		 *		uart0_pins: uart0 {
+		 *			uart0 {
+		 *				ralink,group = "uart0";
+		 *				ralink,function = "uart0";
+		 *			};
+		 *		};
+		 *	2. changing reset-names field/property value from
+		 *	   uart0 to uartl similar to the patch supplied by
+		 *	   Mediatek (SoC/BSP vendor) for uartlite section.
+		 *	   Unfortunately there is no clear reason/answer from
+		 *	   SoC/BSP provider as why reset-names should be
+		 *	   changed from SoC/BSP provider. And could not find
+		 *	   uartl references in the code related to reset
+		 *	   either in the vendor driver or in the platform
+		 *	   specific reset code.
+		 *
+		 * for more details look at source file
+		 *	arch/mips/ralink/mt7620.c
+		 *
+		 * clock device id name		for uart	uart-section
+		 *						to be in
+		 *						dts[i]
+		 * --------------------		--------	------------
+		 * 10000c00.uartlite		uart0		uartlite
+		 * 10000d00.uart1		uart1		uart1
+		 * 10000e00.uart2		uart2		uart2
+		 *
+		 * FIXME:
+		 *	1. changes to this file should not be done directly
+		 *	   similar to current change. Incremental of
+		 *	   subsequent changes should be applied as patches.
+		 *	   Current applying patches supplied by "git
+		 *	   format-patch <revision>[..<revision>]" in git style
+		 *	   leads to error due to non-existence of mt7628.dtsi
+		 *	   file in the index tree.
+		 *	2. section names in dts[i] should not be controlled by
+		 *	   platform source code. This should be fixed. Clock
+		 *	   tree mechanism for mt7628 SoC and derived target
+		 *	   boards should also be fixed
+		 *	3. blindly changing "reset-names" field/property value
+		 *	   for uartlite section from 'reset-names = "uart0";'
+		 *	   to 'reset-names = "uartl";' without any proper
+		 *	   reason. Could this lead to unexpected behavior when
+		 *	   reset names are added in the platform code?
+		 *
+		 * TODO:
+		 *	1. create git style patch by removing current changes
+		 *	   to mt7628an.dtsi once mt7628.dtsi is added to git
+		 *	   index tree
+		 *	2. Look at SoC platform code and fix the certain
+		 *	   section names control from platform code
+		 * 	   Eg: uartlite for uart0 at this point of time.
+		 *	3. Add/fix the clock tree control mechanism in dts[i]
+		 *	   files appropriately instead of control in SoC
+		 *	   platform code.
+		 *	4. Look into pinctrl-names and pinctrl-0 fields for
+		 *	   uartlite, uart1, uart2 sections whether aligned
+		 *	   with group names defined and used in
+		 *	   "arch/mips/ralink/mt7620.c"
+		 *	5. Change SoC derived target board dts[i] files
+		 *	   appropriately for uart sections to match below
+		 *	6. Change periph_rate appropriately for SoC target
+		 *	   boards based on Crystal Xtal supported frequency
+		 *	7. Looks for how uartlite section name can be used for
+		 *	   uart1 and uart2 due to addition of clocks with
+		 *	   device ids as 10000d00.uartlite and
+		 *	   10000e00.uartlite respectively
+		 *	8. Fix pinctrl0 appropriately for uartlite to be
+		 *	   uartlite instead of uart0. This requires fix in
+		 *	   file "arch/mips/ralink/mt7620.c" for MT7628AN SoC
+		 *	   pim mux group table.
+		 *	9. Investigate or Request a clear/proper reason either
+		 *	   in the code or from SoC/BSP provider as why
+		 *	   reset-names field for uartlite section should be
+		 *	   changed to "uartl" from "uart0" and for any side
+		 *	   effects and/or undefined behaviour in the product
+		 *	   either at stress test stage or in the field stage
+		 */
+		uartlite: uartlite@c00 {
+			compatible = "mediatek,mt6577-uart", "ns16550a";
+			reg = <0xc00 0x100>;
+
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			no-loopback-test;
+
+			clock-frequency = <40000000>;
+
+			resets = <&rstctrl 12>;
+			reset-names = "uartl";
+
+			interrupt-parent = <&intc>;
+			interrupts = <20>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart0_pins>;
+		};
+
+		uart1: uart1@d00 {
+			compatible = "mediatek,mt6577-uart", "ns16550a";
+			reg = <0xd00 0x100>;
+
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			no-loopback-test;
+
+			clock-frequency = <40000000>;
+
+			resets = <&rstctrl 19>;
+			reset-names = "uart1";
+
+			interrupt-parent = <&intc>;
+			interrupts = <21>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart1_pins>;
+
+			status = "disabled";
+		};
+
+		uart2: uart2@e00 {
+			compatible = "mediatek,mt6577-uart", "ns16550a";
+			reg = <0xe00 0x100>;
+
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			no-loopback-test;
+
+			clock-frequency = <40000000>;
+
+			resets = <&rstctrl 20>;
+			reset-names = "uart2";
+
+			interrupt-parent = <&intc>;
+			interrupts = <22>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart2_pins>;
+
+			status = "disabled";
+		};
+
+		pwm: pwm@5000 {
+			compatible = "mediatek,mt7628-pwm";
+			reg = <0x5000 0x1000>;
+
+			resets = <&rstctrl 31>;
+			reset-names = "pwm";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&pwm0_pins>, <&pwm1_pins>;
+
+			status = "disabled";
+		};
+
+		pcm: pcm@2000 {
+			compatible = "ralink,mt7620a-pcm";
+			reg = <0x2000 0x800>;
+
+			resets = <&rstctrl 11>;
+			reset-names = "pcm";
+
+			interrupt-parent = <&intc>;
+			interrupts = <4>;
+
+			status = "disabled";
+		};
+
+		gdma: gdma@2800 {
+			compatible = "ralink,rt3883-gdma";
+			reg = <0x2800 0x800>;
+
+			resets = <&rstctrl 14>;
+			reset-names = "dma";
+
+			interrupt-parent = <&intc>;
+			interrupts = <7>;
+
+			#dma-cells = <1>;
+			#dma-channels = <16>;
+			#dma-requests = <16>;
+
+			status = "disabled";
+		};
+	};
+
+	pinctrl: pinctrl {
+		compatible = "ralink,rt2880-pinmux";
+		pinctrl-names = "default";
+		pinctrl-0 = <&state_default>;
+
+		state_default: pinctrl0 {
+		};
+
+		spi_pins: spi {
+			spi {
+				ralink,group = "spi";
+				ralink,function = "spi";
+			};
+		};
+
+		spi_cs1_pins: spi_cs1 {
+			spi_cs1 {
+				ralink,group = "spi cs1";
+				ralink,function = "spi cs1";
+			};
+		};
+
+		i2c_pins: i2c {
+			i2c {
+				ralink,group = "i2c";
+				ralink,function = "i2c";
+			};
+		};
+
+		i2s_pins: i2s {
+			i2s {
+				ralink,group = "i2s";
+				ralink,function = "i2s";
+			};
+		};
+
+		uart0_pins: uart0 {
+			uart0 {
+				ralink,group = "uart0";
+				ralink,function = "uart0";
+			};
+		};
+
+		uart1_pins: uart1 {
+			uart1 {
+				ralink,group = "uart1";
+				ralink,function = "uart1";
+			};
+		};
+
+		uart2_pins: uart2 {
+			uart2 {
+				ralink,group = "uart2";
+				ralink,function = "uart2";
+			};
+		};
+
+		sdxc_pins: sdxc {
+			sdxc {
+				ralink,group = "sdmode";
+				ralink,function = "sdxc";
+			};
+		};
+
+		pwm0_pins: pwm0 {
+			pwm0 {
+				ralink,group = "pwm0";
+				ralink,function = "pwm0";
+			};
+		};
+
+		pwm1_pins: pwm1 {
+			pwm1 {
+				ralink,group = "pwm1";
+				ralink,function = "pwm1";
+			};
+		};
+
+		pcm_i2s_pins: pcm_i2s {
+			pcm_i2s {
+				ralink,group = "i2s";
+				ralink,function = "pcm";
+			};
+		};
+
+		refclk_pins: refclk {
+			refclk {
+				ralink,group = "refclk";
+				ralink,function = "refclk";
+			};
+		};
+	};
+
+	rstctrl: rstctrl {
+		compatible = "ralink,mt7620a-reset", "ralink,rt2880-reset";
+		#reset-cells = <1>;
+	};
+
+	clkctrl: clkctrl {
+		compatible = "ralink,rt2880-clock";
+		#clock-cells = <1>;
+	};
+
+	usbphy: usbphy@10120000 {
+		compatible = "mediatek,mt7628-usbphy", "mediatek,mt7620-usbphy";
+		reg = <0x10120000 0x1000>;
+		#phy-cells = <0>;
+
+		ralink,sysctl = <&sysc>;
+		resets = <&rstctrl 22 &rstctrl 25>;
+		reset-names = "host", "device";
+		clocks = <&clkctrl 22 &clkctrl 25>;
+		clock-names = "host", "device";
+	};
+
+	sdhci: sdhci@10130000 {
+		compatible = "ralink,mt7620-sdhci";
+		reg = <0x10130000 0x4000>;
+
+		interrupt-parent = <&intc>;
+		interrupts = <14>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&sdxc_pins>;
+
+		status = "disabled";
+	};
+
+	ehci: ehci@101c0000 {
+		compatible = "generic-ehci";
+		reg = <0x101c0000 0x1000>;
+
+		phys = <&usbphy>;
+		phy-names = "usb";
+
+		interrupt-parent = <&intc>;
+		interrupts = <18>;
+	};
+
+	ohci: ohci@101c1000 {
+		compatible = "generic-ohci";
+		reg = <0x101c1000 0x1000>;
+
+		phys = <&usbphy>;
+		phy-names = "usb";
+
+		interrupt-parent = <&intc>;
+		interrupts = <18>;
+	};
+
+	ethernet: ethernet@10100000 {
+		compatible = "ralink,rt5350-eth";
+		reg = <0x10100000 0x10000>;
+
+		interrupt-parent = <&cpuintc>;
+		interrupts = <5>;
+
+		resets = <&rstctrl 21 &rstctrl 23>;
+		reset-names = "fe", "esw";
+
+		mediatek,switch = <&esw>;
+	};
+
+	esw: esw@10110000 {
+		compatible = "mediatek,mt7628-esw", "ralink,rt3050-esw";
+		reg = <0x10110000 0x8000>;
+
+		resets = <&rstctrl 23>;
+		reset-names = "esw";
+
+		interrupt-parent = <&intc>;
+		interrupts = <17>;
+	};
+
+	pcie: pcie@10140000 {
+		compatible = "mediatek,mt7620-pci";
+		reg = <0x10140000 0x100
+			0x10142000 0x100>;
+
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		interrupt-parent = <&cpuintc>;
+		interrupts = <4>;
+
+		resets = <&rstctrl 26 &rstctrl 27>;
+		reset-names = "pcie0", "pcie1";
+		clocks = <&clkctrl 26 &clkctrl 27>;
+		clock-names = "pcie0", "pcie1";
+
+		status = "disabled";
+
+		device_type = "pci";
+
+		bus-range = <0 255>;
+		ranges = <
+			0x02000000 0 0x00000000 0x20000000 0 0x10000000 /* pci memory */
+			0x01000000 0 0x00000000 0x10160000 0 0x00010000 /* io space */
+		>;
+
+		pcie-bridge {
+			reg = <0x0000 0 0 0 0>;
+
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			device_type = "pci";
+		};
+	};
+
+	wmac: wmac@10300000 {
+		compatible = "mediatek,mt7628-wmac";
+		reg = <0x10300000 0x100000>;
+
+		interrupt-parent = <&cpuintc>;
+		interrupts = <6>;
+
+		status = "disabled";
+
+		mediatek,mtd-eeprom = <&factory 0x0000>;
+	};
+};

@@ -1,0 +1,51 @@
+From 64a5b6cc2a803369388e8bd760b97fb2b4ee979f Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 5 Nov 2019 15:47:49 -0500
+Subject: [PATCH] Turn on LED D3 at boot.
+
+Configure GPIO28 as an output and drive it low immediately upon boot.
+---
+ arch/mips/cpu/start.S | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/arch/mips/cpu/start.S b/arch/mips/cpu/start.S
+index 1d21b23..bc21554 100644
+--- a/arch/mips/cpu/start.S
++++ b/arch/mips/cpu/start.S
+@@ -10,6 +10,12 @@
+ #include <asm/asm.h>
+ #include <asm/regdef.h>
+ #include <asm/mipsregs.h>
++#include <asm/addrspace.h>
++	
++#define MT76XX_SYSCTL_BASE	0x10000000	
++#ifndef BIT
++#define BIT(nr)			(1 << (nr))
++#endif
+ 
+ #ifndef CONFIG_SYS_INIT_SP_ADDR
+ #define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SYS_SDRAM_BASE + \
+@@ -80,10 +86,18 @@
+ 	.endm
+ 
+ ENTRY(_start)
++	mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
++	li	s0, CKSEG1ADDR(MT76XX_SYSCTL_BASE + 0x600)
++	lw	t1, 0x00(s0)
++	li	t2, BIT(28)
++	or	t1, t2
++	sw	t1, 0x00(s0)
++	lw	t1, 0x20(s0)
++	li	t2,~BIT(28)
++	and	t1, t2
+ 	/* U-Boot entry point */
+ 	b	reset
+-	 mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
+-
++	sw	t1, 0x20(s0)
+ #if defined(CONFIG_MIPS_INSERT_BOOT_CONFIG)
+ 	/*
+ 	 * Store some board-specific boot configuration. This is used by some
+-- 
+2.7.4
+

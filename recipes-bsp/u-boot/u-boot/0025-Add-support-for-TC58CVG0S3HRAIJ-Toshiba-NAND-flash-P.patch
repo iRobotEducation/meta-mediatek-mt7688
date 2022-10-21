@@ -1,0 +1,33 @@
+From b285a18e2c19fa6211ac15b201f5d57e46c953c7 Mon Sep 17 00:00:00 2001
+From: Maria Rios-Martinez <mriosmartinez@irobot.com>
+Date: Thu, 27 Aug 2020 17:37:43 -0400
+Subject: [PATCH] Add support for TC58CVG0S3HRAIJ Toshiba NAND flash Part
+
+---
+ drivers/mtd/nand/spi/toshiba.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/mtd/nand/spi/toshiba.c b/drivers/mtd/nand/spi/toshiba.c
+index db8021da45b5..ebcf777e2c2c 100644
+--- a/drivers/mtd/nand/spi/toshiba.c
++++ b/drivers/mtd/nand/spi/toshiba.c
+@@ -104,6 +104,16 @@ static const struct spinand_info toshiba_spinand_table[] = {
+ 		     0,
+ 		     SPINAND_ECCINFO(&tc58cxgxsx_ooblayout,
+ 				     tc58cxgxsx_ecc_get_status)),
++	/* 3.3V 1Gb (2nd generation) */
++	SPINAND_INFO("TC58CVG0S3", 0xE2,
++		     NAND_MEMORG(1, 2048, 128, 64, 1024, 1, 1, 1),
++		     NAND_ECCREQ(8, 512),
++		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
++					      &write_cache_variants,
++					      &update_cache_variants),
++		     SPINAND_HAS_QE_BIT,
++		     SPINAND_ECCINFO(&tc58cxgxsx_ooblayout,
++				     tc58cxgxsx_ecc_get_status)),
+ 	/* 3.3V 2Gb */
+ 	SPINAND_INFO("TC58CVG1S3", 0xCB,
+ 		     NAND_MEMORG(1, 2048, 128, 64, 2048, 1, 1, 1),
+-- 
+2.24.1
+

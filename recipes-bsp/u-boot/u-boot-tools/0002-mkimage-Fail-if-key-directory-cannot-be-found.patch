@@ -1,0 +1,41 @@
+From 66206f1a87a51556230814bf41c3b4b5013443e3 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Thu, 19 Sep 2019 16:26:23 -0400
+Subject: [PATCH] mkimage: Fail if key directory cannot be found.
+
+---
+ tools/image-host.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/tools/image-host.c b/tools/image-host.c
+index 0d5cb89..58886ed 100644
+--- a/tools/image-host.c
++++ b/tools/image-host.c
+@@ -230,10 +230,11 @@ static int fit_image_process_sig(const char *keydir, void *keydest,
+ 	if (ret) {
+ 		printf("Failed to sign '%s' signature node in '%s' image node: %d\n",
+ 		       node_name, image_name, ret);
+-
++#if 0
+ 		/* We allow keys to be missing */
+ 		if (ret == -ENOENT)
+ 			return 0;
++#endif
+ 		return -1;
+ 	}
+ 
+@@ -616,9 +617,11 @@ static int fit_config_process_sig(const char *keydir, void *keydest,
+ 		printf("Failed to sign '%s' signature node in '%s' conf node\n",
+ 		       node_name, conf_name);
+ 
++#if 0
+ 		/* We allow keys to be missing */
+ 		if (ret == -ENOENT)
+ 			return 0;
++#endif
+ 		return -1;
+ 	}
+ 
+-- 
+2.7.4
+

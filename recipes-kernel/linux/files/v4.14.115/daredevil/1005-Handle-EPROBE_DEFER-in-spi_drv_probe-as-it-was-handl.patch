@@ -1,0 +1,40 @@
+From 977074c416b377bc0424b9649500697f3766306e Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Fri, 17 May 2019 11:20:19 -0400
+Subject: [PATCH] Handle -EPROBE_DEFER in spi_drv_probe() as it was handled in
+ 4.14.
+
+The 4.14 version of spi_drv_probe() would call sdrv->probe() if
+dev_pm_domain_attach() returned -EPROBE_DEFER (but not if it returned
+any other error code).  The 4.19 version returned an error for any/every
+error code returned by dev_pm_domain_attach().  This commit/patch
+restores the 4.14 behavior.
+---
+ drivers/spi/spi.c | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/spi/spi.c b/drivers/spi/spi.c
+index 9da0bc5..b161edf 100644
+--- a/drivers/spi/spi.c
++++ b/drivers/spi/spi.c
+@@ -359,12 +359,11 @@ static int spi_drv_probe(struct device *dev)
+ 	}
+ 
+ 	ret = dev_pm_domain_attach(dev, true);
+-	if (ret)
+-		return ret;
+-
+-	ret = sdrv->probe(spi);
+-	if (ret)
+-		dev_pm_domain_detach(dev, true);
++	if (ret != -EPROBE_DEFER) {
++		ret = sdrv->probe(spi);
++		if (ret)
++			dev_pm_domain_detach(dev, true);
++	}
+ 
+ 	return ret;
+ }
+-- 
+2.7.4
+

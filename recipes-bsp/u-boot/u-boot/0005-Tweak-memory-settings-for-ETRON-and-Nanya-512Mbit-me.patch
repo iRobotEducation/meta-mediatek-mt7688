@@ -1,0 +1,75 @@
+From 63bad061820c08cf17b11d129161923118a766a3 Mon Sep 17 00:00:00 2001
+From: Patrick Doyle <pdoyle@irobot.com>
+Date: Tue, 28 May 2019 10:06:42 -0400
+Subject: [PATCH] Tweak memory settings for ETRON and Nanya 512Mbit memories.
+
+Increase the time between refresh. Set CAS_LATENCY to 5.
+---
+ arch/mips/mach-mt7620/lowlevel_init.S | 15 +++++++++++++--
+ arch/mips/mach-mt7620/mt76xx.h        |  1 +
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/arch/mips/mach-mt7620/lowlevel_init.S b/arch/mips/mach-mt7620/lowlevel_init.S
+index aa707e0..5ed9e63 100644
+--- a/arch/mips/mach-mt7620/lowlevel_init.S
++++ b/arch/mips/mach-mt7620/lowlevel_init.S
+@@ -32,8 +32,10 @@
+ #define DDR_CFG4_SIZE_VAL	7
+ #endif
+ #if defined(CONFIG_ONBOARD_DDR2_SIZE_512MBIT)
++#define DDR_CFG0_VAL		0x249AA5D9
+ #define DDR_CFG1_SIZE_VAL	0x22322323
+ #define DDR_CFG4_SIZE_VAL	9
++#define DDR_CFG2_CAS_LATENCY	5
+ #endif
+ #if defined(CONFIG_ONBOARD_DDR2_SIZE_1024MBIT)
+ #define DDR_CFG1_SIZE_VAL	0x22362323
+@@ -58,6 +60,9 @@
+ #define DDR_CFG1_BUS_WIDTH_VAL	(0x3 << 12)
+ #endif
+ 
++#ifndef DDR_CFG2_CAS_LATENCY
++#define DDR_CFG2_CAS_LATENCY 4
++#endif
+ 	.set noreorder
+ 
+ LEAF(lowlevel_init)
+@@ -264,15 +269,21 @@ DDR_READY:
+ 	/*
+ 	 * DDR initialization
+ 	 *
+-	 * Only DDR2 supported right now. DDR2 support can be added, once
++	 * Only DDR2 supported right now. DDR1 support can be added, once
+ 	 * boards using it will get added to mainline U-Boot.
+ 	 */
++#ifdef DDR_CFG0_VAL
++	li	t6, DDR_CFG0_VAL
++	li	t5, DDR_CFG0_REG
++	sw	t6, 0(t5)
++	nop
++#endif
+ 	li	t1, DDR_CFG2_REG
+ 	lw	t0, 0(t1)
+ 	nop
+ 	and	t0, ~BIT(30)
+ 	and	t0, ~(7 << 4)
+-	or	t0, (4 << 4)
++	or	t0, (DDR_CFG2_CAS_LATENCY << 4)
+ 	or	t0, BIT(30)
+ 	or	t0, BIT(11)
+ 	sw	t0, 0(t1)
+diff --git a/arch/mips/mach-mt7620/mt76xx.h b/arch/mips/mach-mt7620/mt76xx.h
+index 17473ea..e0de487 100644
+--- a/arch/mips/mach-mt7620/mt76xx.h
++++ b/arch/mips/mach-mt7620/mt76xx.h
+@@ -19,6 +19,7 @@
+ #define MT76XX_CLKCFG0_REG	(MT76XX_SYSCTL_BASE + 0x002c)
+ #define MT76XX_DYN_CFG0_REG	(MT76XX_SYSCTL_BASE + 0x0440)
+ 
++#define DDR_CFG0_REG		(MT76XX_MEMCTRL_BASE + 0x40)
+ #define DDR_CFG1_REG		(MT76XX_MEMCTRL_BASE + 0x44)
+ #define DDR_CFG2_REG		(MT76XX_MEMCTRL_BASE + 0x48)
+ #define DDR_CFG3_REG		(MT76XX_MEMCTRL_BASE + 0x4c)
+-- 
+2.7.4
+

@@ -1,0 +1,114 @@
+# Show output from u-boot.  We can set silent=y later if we really want to.  For
+# now, the debug output is too useful to discard.
+#silent=y
+
+# Set the bootloader version we report to the kernel (via the kernel command line)
+bootargs=bl_version=IROBOT_UBOOT_VERSION console=ttyS1,115200
+
+# bootcmd:
+# - Import the TSK (Trust Signing Key) from flash at offset 0xE0000 (address 0x9c0e0000 in memory)
+# - Initialize the UBI subsystem in NAND, allow for 512 byte subpages
+# - Attempt to boot a kernel (importing an MTAL, trying to boot from USB and NAND)
+# - If that should fail for any reason, reset and try again.
+
+bootcmd=run import_tsk; ubi part nand || ubi part nand 512; run boot_kernel; run do_reset
+
+
+# import_tsk
+# (attempt to) add the TrustSigningKey from flash at address 0x9c0e0000.
+# We are using the same `import_rsa_keys` we use to import MTAL, but since that key
+# is self-signed, we must disable verification during the import
+
+import_tsk=setenv verify n; import_rsa_keys 9c0e0000#conf; setenv verify y
+
+
+# boot_kernel:
+# On a hard reset, attempt to boot a kernel from USB, and then from NAND.  Skip
+# the USB boot on a soft reset.  (This enables a USB image to force a boot from NAND
+# by triggering a soft reset.)
+#
+# - Is this a hard reset? (check address 0x10000038 to see if it is it's default hard reset value)
+#   yes - attempt to boot from USB
+#    no - load the MTAL from NAND
+# (note that if we fail to boot from USB, we will fall through to here)
+# - continue with NAND boot (run the "boot_NAND" command)
+
+boot_kernel=if itest.l *10000038 == ffff0000; then run usb_boot; else run log_softreset import_MTAL_from_NAND; fi; run boot_NAND
+
+
+# log_softreset
+# prepend "softreset" to the kernel command line
+
+log_softreset=setenv bootargs softreset ${bootargs}
+
+
+# usb_boot:
+# Attempt to load an MTAL first from NAND and, if that fails, then from USB.  Then
+# attempt to boot from USB.  If we successfully loaded an MTAL from USB, but failed
+# to boot, then trigger a hard reset so that we don't attempt to use that MTAL with
+# production images in NAND.
+#
+# - initialize usb
+# - check for noisy boot
+# - load the MTAL from NAND
+# - Was load successful?
+#   no  - load MTAL from USB
+#       - Was load successful?
+#         yes - boot fitImage from USB
+#             - hard reset (if boot failed)
+#(fall through)
+# - attempt to boot image from USB
+
+usb_boot=usb start; if run import_MTAL_from_NAND; then true; else if run import_MTAL_from_USB; then run boot_USB_fitImage; run do_reset; fi; fi; run boot_USB_fitImage
+
+
+# import_MTAL_from_NAND
+# Attempt to load the MTAL from the "A" volume ("crypto").  If that fails, then attempt
+# to load it from the "B" volume  ("prev_crypto").  If that fails, then we have no MTAL.
+# Note that the MTAL is located at an offset of 256 (0x100) bytes from the start of
+# the volume.
+
+import_MTAL_from_NAND=run loadMTALfrom_a || run loadMTALfrom_b
+loadMTALfrom_a=ubi read 82000000 crypto 01800000 && import_rsa_keys 82000100#conf
+loadMTALfrom_b=setenv bootargs bad_mtal ${bootargs}; ubi read 82000000 prev_crypto 01800000 && import_rsa_keys 82000100#conf
+
+
+# import_MTAL_from_USB
+# Attempt to read a file named "mtal" from the USB and (if successful) attempt to import it
+
+import_MTAL_from_USB=fatload usb 0:1 82000000 mtal 01800000 && import_rsa_keys 82000100#conf && setenv bootargs usb_mtal ${bootargs}
+
+
+# boot_USB_fitImage
+# Attempt to read a file named "fitImage" from the USB and (if successful) attempt to boot it
+
+boot_USB_fitImage=fatload usb 0:1 82000000 fitImage 01800000 && bootm 82000000#conf
+
+
+# boot_NAND
+# Boot from the "kernel" or "old_kernel" volume, handling watchdog checks and
+# verified boot fallback
+#
+# - Check GPIO 17 to determine if a watchdog reset occured
+#   (note that `gpio input 17` will return 0 if no watchdog occured, which the `if` statement
+#    will evaluate as "true").
+#    no - attempt to boot UBI volume "kernel"
+#   yes - add "watchdog" to kernel command line and clear the watchdog bit
+# - Add "fallback" to kernel command line
+# - Attempt to boot UBI volume "old_kernel"
+
+boot_NAND=if gpio input 17; then setenv ubivol kernel; run bootubi; else run do_watchdog; fi; run do_fallback
+do_watchdog=setenv bootargs watchdog ${bootargs};gpio clear 15; sleep 0.001; gpio set 15
+do_fallback=setenv bootargs fallback ${bootargs}; setenv ubivol old_kernel; run bootubi
+
+
+# bootubi
+# Read the UBI volume named by ${ubivol} and attempt to boot it
+
+bootubi=ubi read 82000000 ${ubivol} 01800000; bootm 82000000#conf
+
+
+# do_reset
+# Drive GPIO18 low to force a hard reset.  Just in case that doesn't work
+# (why would it ever fail?) force a soft reset.  Go ahead and do that forever
+do_reset=while true; do gpio clear 18; sleep 1; reset; done
